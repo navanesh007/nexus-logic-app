@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 import {
   Outlet,
   Link,
@@ -77,11 +78,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Open1 AI" },
+      { name: "description", content: "Open1 AI — a fast, modern AI assistant with deep search, thinking, and image generation." },
+      { name: "author", content: "Open1 AI" },
+      { property: "og:title", content: "Open1 AI" },
+      { property: "og:description", content: "A fast, modern AI assistant with deep search, thinking, and image generation." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -118,8 +119,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <div className="sticky top-0 z-50 w-full bg-gradient-to-r from-violet-600/90 to-indigo-600/90 px-4 py-2 text-center text-xs font-medium text-white backdrop-blur">
+        Development Mode — Temporary Authentication Enabled
+      </div>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Toaster position="top-center" theme="dark" richColors />
     </QueryClientProvider>
   );
 }

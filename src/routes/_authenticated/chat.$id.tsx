@@ -1,0 +1,176 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Send, Loader2, Sparkles, Search, Brain, Image as ImageIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { sendChat } from "@/lib/ai.functions";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/_authenticated/chat/$id")({
+  component: ChatPage,
+});
+
+type Mode = "normal" | "deep_search" | "think" | "image";
+type Message = { id: string; role: string; content: string; image_url: string | null; created_at: string };
+
+const MODES: { id: Mode; label: string; Icon: typeof Sparkles }[] = [
+  { id: "normal", label: "Normal", Icon: Sparkles },
+  { id: "deep_search", label: "Deep Search", Icon: Search },
+  { id: "think", label: "Think", Icon: Brain },
+  { id: "image", label: "Image", Icon: ImageIcon },
+];
+
+function ChatPage() {
+  const { id } = Route.useParams();
+  const navigate = useNavigate();
+  const send = useServerFn(sendChat);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [mode, setMode] = useState<Mode>("normal");
+  const [sending, setSending] = useState(false);
+  const [title, setTitle] = useState("New chat");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { data: chat } = await supabase.from("chats").select("title, mode").eq("id", id).maybeSingle();
+      if (chat) {
+        setTitle((chat as { title: string }).title);
+        setMode(((chat as { mode: string }).mode as Mode) ?? "normal");
+      }
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("id, role, content, image_url, created_at")
+        .eq("chat_id", id)
+        .order("created_at", { ascending: true });
+      setMessages((msgs ?? []) as Message[]);
+    })();
+  }, [id]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, sending]);
+
+  async function onSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!input.trim() || sending) return;
+    const prompt = input.trim();
+    setInput("");
+    setSending(true);
+    // Optimistic user message
+    const optimistic: Message = {
+      id: `tmp-${Date.now()}`,
+      role: "user",
+      content: prompt,
+      image_url: null,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((m) => [...m, optimistic]);
+    try {
+      await send({ data: { chatId: id, mode, prompt } });
+      // Refresh from DB to get real ids + assistant
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("id, role, content, image_url, created_at")
+        .eq("chat_id", id)
+        .order("created_at", { ascending: true });
+      setMessages((msgs ?? []) as Message[]);
+    } catch (err) {
+      toast.error((err as Error).message);
+      setMessages((m) => m.filter((x) => x.id !== optimistic.id));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto flex h-[100dvh] max-w-md flex-col">
+      <header className="flex items-center gap-3 px-4 py-3 glass-strong">
+        <button
+          onClick={() => navigate({ to: "/" })}
+          className="rounded-full p-2 hover:bg-white/10"
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h1 className="flex-1 truncate text-sm font-medium">{title}</h1>
+      </header>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-4 pt-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="mt-12 text-center text-sm text-muted-foreground">
+            Start the conversation below.
+          </div>
+        )}
+        {messages.map((m) => (
+          <div key={m.id} className={`animate-fade-up flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={
+                m.role === "user"
+                  ? "max-w-[85%] rounded-2xl gradient-brand px-4 py-2.5 text-white shadow-lg"
+                  : "max-w-[90%] text-foreground"
+              }
+            >
+              {m.image_url && (
+                <img
+                  src={m.image_url}
+                  alt="Generated"
+                  loading="lazy"
+                  className="mb-2 rounded-xl border border-white/10"
+                />
+              )}
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</div>
+            </div>
+          </div>
+        ))}
+        {sending && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 pb-28 pt-2">
+        <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
+          {MODES.map(({ id: mid, label, Icon }) => (
+            <button
+              key={mid}
+              onClick={() => setMode(mid)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                mode === mid
+                  ? "gradient-brand text-white shadow-md"
+                  : "glass text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+        <form onSubmit={onSend} className="flex items-end gap-2 rounded-2xl glass-strong p-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void onSend(e as unknown as React.FormEvent);
+              }
+            }}
+            rows={1}
+            placeholder={mode === "image" ? "Describe an image…" : "Message Open1 AI…"}
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground max-h-32"
+          />
+          <button
+            type="submit"
+            disabled={sending || !input.trim()}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-brand text-white disabled:opacity-40"
+            aria-label="Send"
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </button>
+        </form>
+      </div>
+    </main>
+  );
+}
