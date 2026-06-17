@@ -32,7 +32,23 @@ function HomePage() {
   }
 
   async function newChat() {
-    toast.message("Chat persistence is disabled in development mode.");
+    if (creating) return;
+    setCreating(true);
+    try {
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) throw new Error("Please sign in again.");
+      const { data, error } = await supabase
+        .from("chats")
+        .insert({ user_id: userData.user.id, title: "New chat", mode: "normal" })
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "Could not create chat");
+      navigate({ to: "/chat/$id", params: { id: (data as { id: string }).id } });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setCreating(false);
+    }
   }
 
   const filtered = chats.filter((c) =>
