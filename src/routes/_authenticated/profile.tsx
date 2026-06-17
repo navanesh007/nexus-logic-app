@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
-import { mockAuth } from "@/lib/mock-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
@@ -11,27 +11,43 @@ export const Route = createFileRoute("/_authenticated/profile")({
 function ProfilePage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const u = mockAuth.getUser();
-    if (!u) return;
-    setEmail(u.email);
-    setPhone(u.phone);
-    setDisplayName(u.displayName);
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      const u = data.user;
+      if (!u) return;
+      setEmail(u.email ?? null);
+      setUserId(u.id);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", u.id)
+        .maybeSingle();
+      setDisplayName(
+        (profile as { display_name: string | null } | null)?.display_name ??
+          u.email?.split("@")[0] ??
+          "",
+      );
+    })();
   }, []);
 
   async function save() {
+    if (!userId) return;
     setSaving(true);
-    mockAuth.updateDisplayName(displayName);
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: userId, display_name: displayName });
     setSaving(false);
-    toast.success("Profile saved");
+    if (error) toast.error(error.message);
+    else toast.success("Profile saved");
   }
 
   async function signOut() {
-    mockAuth.signOut();
+    await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
 
@@ -45,7 +61,7 @@ function ProfilePage() {
         </div>
         <div className="min-w-0">
           <div className="truncate text-base font-semibold">{displayName || "You"}</div>
-          <div className="truncate text-xs text-muted-foreground">{email ?? phone ?? ""}</div>
+          <div className="truncate text-xs text-muted-foreground">{email ?? ""}</div>
         </div>
       </div>
 
