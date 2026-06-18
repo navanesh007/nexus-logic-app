@@ -34,15 +34,20 @@ function extractJson(text: string): unknown {
   return JSON.parse(raw.slice(s, end + 1));
 }
 
-const NewsCategory = z.enum(["ai", "technology", "finance", "world"]);
+/* ---------------- NEWS ---------------- */
+
+const NewsCategory = z.enum(["ai", "technology", "finance", "crypto", "world"]);
 
 export const getNews = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ category: NewsCategory }).parse)
   .handler(async ({ data }) => {
-    const prompt = `Generate 6 plausible, current-feeling headlines for the "${data.category}" news category.
-Return ONLY valid JSON in this exact shape, no prose, no code fences:
-{"items":[{"title":"...","summary":"2-3 sentence AI summary","source":"Publication name","category":"${data.category}"}]}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const prompt = `Generate 8 plausible TODAY (${today}) headlines for the "${data.category}" news category.
+Return ONLY valid JSON, no prose, no code fences:
+{"items":[{"title":"...","summary":"1-2 sentence AI summary","source":"Publication name","minutesAgo":12,"category":"${data.category}"}]}
+- "minutesAgo": integer 5..600 indicating how recent the story is.
+- Use real-sounding publications (Reuters, Bloomberg, The Verge, CoinDesk, TechCrunch, FT, BBC, CNBC).`;
     const result = await callGateway("chat/completions", {
       model: "google/gemini-3-flash-preview",
       messages: [
@@ -60,29 +65,86 @@ Return ONLY valid JSON in this exact shape, no prose, no code fences:
       title: z.string(),
       summary: z.string(),
       source: z.string().optional().default("Open1 AI"),
+      minutesAgo: z.number().optional().default(30),
       category: z.string().optional().default(data.category),
     });
     const items = z.array(Item).parse(parsed.items ?? []);
     return { items, generatedAt: new Date().toISOString() };
   });
 
-const MarketKind = z.enum(["stocks", "crypto"]);
+/* ---------------- MARKET ---------------- */
+
+const MarketKind = z.enum(["nifty50", "banknifty", "crypto"]);
+
+const STOCK_UNIVERSE = [
+  { symbol: "RELIANCE", name: "Reliance Industries" },
+  { symbol: "TCS", name: "Tata Consultancy Services" },
+  { symbol: "HDFCBANK", name: "HDFC Bank" },
+  { symbol: "INFY", name: "Infosys" },
+  { symbol: "ICICIBANK", name: "ICICI Bank" },
+  { symbol: "SBIN", name: "State Bank of India" },
+  { symbol: "BHARTIARTL", name: "Bharti Airtel" },
+  { symbol: "LT", name: "Larsen & Toubro" },
+  { symbol: "ITC", name: "ITC Ltd" },
+  { symbol: "HINDUNILVR", name: "Hindustan Unilever" },
+];
+
+const BANK_UNIVERSE = [
+  { symbol: "HDFCBANK", name: "HDFC Bank" },
+  { symbol: "ICICIBANK", name: "ICICI Bank" },
+  { symbol: "SBIN", name: "State Bank of India" },
+  { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank" },
+  { symbol: "AXISBANK", name: "Axis Bank" },
+  { symbol: "INDUSINDBK", name: "IndusInd Bank" },
+  { symbol: "BANKBARODA", name: "Bank of Baroda" },
+  { symbol: "PNB", name: "Punjab National Bank" },
+  { symbol: "FEDERALBNK", name: "Federal Bank" },
+  { symbol: "IDFCFIRSTB", name: "IDFC First Bank" },
+];
+
+const CRYPTO_UNIVERSE = [
+  { symbol: "BTC", name: "Bitcoin" },
+  { symbol: "ETH", name: "Ethereum" },
+  { symbol: "BNB", name: "BNB" },
+  { symbol: "SOL", name: "Solana" },
+  { symbol: "XRP", name: "XRP" },
+  { symbol: "DOGE", name: "Dogecoin" },
+  { symbol: "ADA", name: "Cardano" },
+  { symbol: "TRX", name: "TRON" },
+  { symbol: "AVAX", name: "Avalanche" },
+  { symbol: "LINK", name: "Chainlink" },
+];
 
 export const getMarket = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ kind: MarketKind }).parse)
   .handler(async ({ data }) => {
     const universe =
-      data.kind === "stocks"
-        ? "major US stocks (AAPL, MSFT, NVDA, GOOGL, AMZN, TSLA, META)"
-        : "major cryptocurrencies (BTC, ETH, SOL, BNB, XRP, ADA, DOGE)";
+      data.kind === "crypto" ? CYPTO_LABEL() : data.kind === "banknifty" ? BANK_LABEL() : STOCK_LABEL();
+    const list =
+      data.kind === "crypto" ? CRYPTO_UNIVERSE : data.kind === "banknifty" ? BANK_UNIVERSE : STOCK_UNIVERSE;
+    const currency = data.kind === "crypto" ? "USD" : "INR";
+    const indexName =
+      data.kind === "crypto" ? "Crypto Total Market Cap" : data.kind === "banknifty" ? "Bank Nifty" : "Nifty 50";
+
     const prompt = `Provide a current-feeling market snapshot for ${universe}.
+Currency: ${currency}. Index: "${indexName}".
 Return ONLY valid JSON, no prose, no code fences:
 {
-  "assets":[{"symbol":"...","name":"...","price":123.45,"changePct":1.23,"trend":"up|down|flat"}],
-  "analysis":"3-4 sentence AI market analysis covering momentum, sentiment, and notable movers.",
-  "risks":["short risk warning 1","short risk warning 2","short risk warning 3"]
-}`;
+  "index": { "name": "${indexName}", "value": 12345.67, "changePct": 0.42, "spark": [12 numbers showing intraday trend] },
+  "assets": [
+    ${list.map((a) => `{ "symbol": "${a.symbol}", "name": "${a.name}", "price": 0, "changePct": 0, "trend": "up|down|flat", "spark": [12 numbers] }`).join(",\n    ")}
+  ],
+  "insights": [
+    { "title": "Top gainer", "value": "SYMBOL +x.x%" },
+    { "title": "Top loser", "value": "SYMBOL -x.x%" },
+    { "title": "Sentiment", "value": "Bullish | Neutral | Bearish" },
+    { "title": "Volatility", "value": "Low | Medium | High" }
+  ]
+}
+- Use realistic prices for each symbol in ${currency}.
+- "spark" arrays must be exactly 12 numbers reflecting the intraday shape.`;
+
     const result = await callGateway("chat/completions", {
       model: "google/gemini-3-flash-preview",
       messages: [
@@ -95,20 +157,36 @@ Return ONLY valid JSON, no prose, no code fences:
       ],
     });
     const text: string = result?.choices?.[0]?.message?.content ?? "";
-    const parsed = extractJson(text) as {
-      assets?: unknown[];
-      analysis?: string;
-      risks?: unknown[];
-    };
+    const parsed = extractJson(text) as Record<string, unknown>;
+
     const Asset = z.object({
       symbol: z.string(),
       name: z.string(),
       price: z.number(),
       changePct: z.number(),
       trend: z.enum(["up", "down", "flat"]).optional().default("flat"),
+      spark: z.array(z.number()).optional().default([]),
     });
+    const Index = z.object({
+      name: z.string(),
+      value: z.number(),
+      changePct: z.number(),
+      spark: z.array(z.number()).optional().default([]),
+    });
+    const Insight = z.object({ title: z.string(), value: z.string() });
+
+    const index = Index.parse(parsed.index ?? { name: indexName, value: 0, changePct: 0, spark: [] });
     const assets = z.array(Asset).parse(parsed.assets ?? []);
-    const analysis = z.string().parse(parsed.analysis ?? "");
-    const risks = z.array(z.string()).parse(parsed.risks ?? []);
-    return { assets, analysis, risks, generatedAt: new Date().toISOString() };
+    const insights = z.array(Insight).parse(parsed.insights ?? []);
+    return { index, assets, insights, currency, generatedAt: new Date().toISOString() };
   });
+
+function STOCK_LABEL() {
+  return "major Indian Nifty 50 stocks: " + STOCK_UNIVERSE.map((s) => s.symbol).join(", ");
+}
+function BANK_LABEL() {
+  return "major Indian Bank Nifty stocks: " + BANK_UNIVERSE.map((s) => s.symbol).join(", ");
+}
+function CYPTO_LABEL() {
+  return "major cryptocurrencies: " + CRYPTO_UNIVERSE.map((s) => s.symbol).join(", ");
+}
