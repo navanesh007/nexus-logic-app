@@ -327,10 +327,23 @@ function ChatPage() {
                   className="mb-2 max-h-80 rounded-xl border border-white/10 object-cover"
                 />
               )}
-              {m.content && (
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</div>
+              {m.content ? (
+                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {m.content}
+                  {m.role === "assistant" && m.id.startsWith("streaming-") && (
+                    <span className="ml-0.5 inline-block h-3.5 w-1.5 -mb-0.5 animate-pulse bg-current align-baseline" />
+                  )}
+                </div>
+              ) : (
+                m.role === "assistant" && (
+                  <div className="flex gap-1 py-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50 animate-bounce [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50 animate-bounce [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50 animate-bounce" />
+                  </div>
+                )
               )}
-              {m.role === "assistant" && m.content && (
+              {m.role === "assistant" && m.content && !m.id.startsWith("streaming-") && (
                 <button
                   type="button"
                   onClick={() => toggleSpeak(m.id, m.content)}
@@ -344,10 +357,9 @@ function ChatPage() {
             </div>
           </div>
         ))}
-        {sending && (
+        {sending && mode === "image" && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />{" "}
-            {mode === "image" ? "Generating image…" : "Thinking…"}
+            <Loader2 className="h-4 w-4 animate-spin" /> Generating image…
           </div>
         )}
       </div>
