@@ -32,14 +32,13 @@ export const Route = createFileRoute("/api/voice-stt")({
         if (file.size > 24 * 1024 * 1024) return new Response("Audio too large", { status: 413 });
 
         const upstream = new FormData();
-        const blob = file as Blob;
-        const type = blob.type.split(";")[0];
+        const type = (file.type || "").split(";")[0];
         const ext =
           type === "audio/mp4" ? "mp4" :
           type === "audio/mpeg" ? "mp3" :
           type === "audio/wav" ? "wav" :
           "webm";
-        upstream.append("file", blob, `recording.${ext}`);
+        upstream.append("file", file, `recording.${ext}`);
         upstream.append("model", "openai/gpt-4o-mini-transcribe");
 
         const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
