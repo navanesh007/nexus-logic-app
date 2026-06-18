@@ -349,6 +349,18 @@ function ChatPage() {
             className="flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground max-h-32"
           />
           <button
+            type="button"
+            onClick={toggleMic}
+            disabled={sending}
+            title={listening ? "Stop listening" : "Voice input"}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground disabled:opacity-40 ${
+              listening ? "gradient-brand text-white animate-pulse" : "glass"
+            }`}
+            aria-label="Voice input"
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          <button
             type="submit"
             disabled={sending || (!input.trim() && !attachedImage)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-brand text-white disabled:opacity-40"
