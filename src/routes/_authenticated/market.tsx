@@ -51,7 +51,7 @@ function MarketPage() {
       {isLoading && (
         <div className="space-y-3">
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-16 rounded-2xl glass-strong animate-pulse" />
+            <div key={i} className="h-[88px] market-card animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
           ))}
         </div>
       )}
