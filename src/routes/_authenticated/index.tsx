@@ -82,6 +82,25 @@ function HomePage() {
         New chat
       </button>
 
+      <div className="mb-6 grid grid-cols-3 gap-2">
+        {[
+          { to: "/tools", label: "AI Tools", Icon: Sparkles },
+          { to: "/portfolio", label: "Portfolio", Icon: Briefcase },
+          { to: "/calculators", label: "Calculators", Icon: Calculator },
+        ].map(({ to, label, Icon }) => (
+          <Link
+            key={to}
+            to={to as never}
+            className="flex flex-col items-center gap-1.5 rounded-2xl glass p-3 text-center transition hover:-translate-y-0.5"
+          >
+            <div className="rounded-xl gradient-brand p-2">
+              <Icon className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-[11px] font-semibold">{label}</span>
+          </Link>
+        ))}
+      </div>
+
       <div className="space-y-2">
         <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Recent
