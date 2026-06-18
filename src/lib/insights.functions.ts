@@ -85,30 +85,69 @@ const INDIAN_STATES = [
   "Delhi",
   "Gujarat",
   "West Bengal",
-  "Rajasthan",
   "Punjab",
+  "Rajasthan",
   "Odisha",
   "Bihar",
   "Uttar Pradesh",
   "Madhya Pradesh",
   "Assam",
+  "Jharkhand",
+  "Chhattisgarh",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jammu and Kashmir",
+  "Goa",
+  "Tripura",
+  "Meghalaya",
+  "Manipur",
+  "Nagaland",
+  "Mizoram",
+  "Arunachal Pradesh",
+  "Sikkim",
+  "Puducherry",
+  "Chandigarh",
+  "Ladakh",
+  "Andaman and Nicobar",
+] as const;
+
+const INDIA_CATEGORIES = [
+  "Trending",
+  "Politics",
+  "Religion",
+  "Business",
+  "Technology",
+  "Sports",
+  "Entertainment",
+  "Education",
+  "Health",
 ] as const;
 
 export const getIndiaNews = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ state: z.enum(INDIAN_STATES) }).parse)
+  .inputValidator(
+    z.object({
+      state: z.enum(INDIAN_STATES),
+      category: z.enum(INDIA_CATEGORIES).optional().default("Trending"),
+    }).parse,
+  )
   .handler(async ({ data }) => {
     const today = new Date().toISOString().slice(0, 10);
-    const scope =
+    const region =
       data.state === "All India"
-        ? "pan-India national news (politics, economy, technology, sports, culture)"
-        : `news specifically from the Indian state of ${data.state} (state politics, local economy, cities, culture, sports)`;
-    const prompt = `Generate 8 plausible TODAY (${today}) headlines covering ${scope}.
+        ? "pan-India national"
+        : `the Indian state/UT of ${data.state}`;
+    const catDesc =
+      data.category === "Trending"
+        ? "the most trending and breaking stories across all topics"
+        : `stories in the ${data.category} category`;
+    const prompt = `Generate 10 plausible TODAY (${today}) headlines about ${catDesc} from ${region}.
 Return ONLY valid JSON, no prose, no code fences:
-{"items":[{"title":"...","summary":"1-2 sentence neutral summary","source":"Indian publication name","minutesAgo":12,"category":"Politics|Economy|Tech|Sports|Culture|City"}]}
+{"items":[{"title":"...","summary":"1-2 sentence neutral summary","source":"Indian publication name","minutesAgo":12,"category":"${data.category}","trendingTag":"Breaking|Top|Most Viewed|Trending|null"}]}
 - "minutesAgo": integer 5..600.
-- Use real Indian publications (The Hindu, Times of India, Hindustan Times, Indian Express, NDTV, The Print, Mint, Moneycontrol, News18, Deccan Herald, The Telegraph India).
-- Headlines must clearly reflect ${data.state === "All India" ? "India" : data.state}.`;
+- Use real Indian publications (The Hindu, Times of India, Hindustan Times, Indian Express, NDTV, The Print, Mint, Moneycontrol, News18, Deccan Herald, The Telegraph India, ABP, India Today).
+- Headlines must clearly reflect ${data.state === "All India" ? "India" : data.state} and the ${data.category} category.
+- For "Trending" mix breaking/top/most-viewed tags; for others most items can have null trendingTag.`;
     const result = await callGateway("chat/completions", {
       model: "google/gemini-3-flash-preview",
       messages: [
@@ -127,13 +166,20 @@ Return ONLY valid JSON, no prose, no code fences:
       summary: z.string(),
       source: z.string().optional().default("The Hindu"),
       minutesAgo: z.number().optional().default(30),
-      category: z.string().optional().default("India"),
+      category: z.string().optional().default(data.category),
+      trendingTag: z.string().nullable().optional().default(null),
     });
     const items = z.array(Item).parse(parsed.items ?? []);
-    return { items, state: data.state, generatedAt: new Date().toISOString() };
+    return {
+      items,
+      state: data.state,
+      category: data.category,
+      generatedAt: new Date().toISOString(),
+    };
   });
 
 export const INDIA_STATES = INDIAN_STATES;
+export const INDIA_NEWS_CATEGORIES = INDIA_CATEGORIES;
 
 /* ---------------- MARKET ---------------- */
 

@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { RefreshCw, AlertCircle, Clock, MapPin } from "lucide-react";
-import { getIndiaNews, INDIA_STATES } from "@/lib/insights.functions";
+import { useMemo, useState } from "react";
+import { RefreshCw, AlertCircle, Clock, MapPin, Flame, TrendingUp, Zap, Eye } from "lucide-react";
+import { getIndiaNews, INDIA_STATES, INDIA_NEWS_CATEGORIES } from "@/lib/insights.functions";
 import { NewsThumb } from "@/components/NewsThumb";
 
 export const Route = createFileRoute("/_authenticated/india-news")({
@@ -26,25 +26,34 @@ function timeAgo(min: number) {
 }
 
 type State = (typeof INDIA_STATES)[number];
+type Category = (typeof INDIA_NEWS_CATEGORIES)[number];
+
+const TRENDING_BUCKETS = [
+  { key: "Breaking", label: "Breaking News", icon: Zap },
+  { key: "Top", label: "Top Headlines", icon: Flame },
+  { key: "Most Viewed", label: "Most Viewed", icon: Eye },
+  { key: "Trending", label: "Trending Today", icon: TrendingUp },
+] as const;
 
 function IndiaNewsPage() {
   const fetchNews = useServerFn(getIndiaNews);
   const [state, setState] = useState<State>("All India");
+  const [category, setCategory] = useState<Category>("Trending");
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["india-news", state],
+    queryKey: ["india-news", state, category],
     queryFn: async () => {
       try {
-        const res = await fetchNews({ data: { state } });
+        const res = await fetchNews({ data: { state, category } });
         if (!res?.items?.length && state !== "All India") {
-          const fb = await fetchNews({ data: { state: "All India" } });
+          const fb = await fetchNews({ data: { state: "All India", category } });
           return { ...fb, fallback: true as const };
         }
         return res;
       } catch (err) {
         if (state !== "All India") {
           try {
-            const fb = await fetchNews({ data: { state: "All India" } });
+            const fb = await fetchNews({ data: { state: "All India", category } });
             return { ...fb, fallback: true as const };
           } catch {
             throw err;
@@ -54,11 +63,25 @@ function IndiaNewsPage() {
       }
     },
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const items = data?.items ?? [];
   const usedFallback = (data as { fallback?: boolean } | undefined)?.fallback;
+
+  const trendingByBucket = useMemo(() => {
+    const map: Record<string, typeof items> = { Breaking: [], Top: [], "Most Viewed": [], Trending: [] };
+    items.forEach((it, i) => {
+      const tag = (it as { trendingTag?: string | null }).trendingTag;
+      if (tag && map[tag]) map[tag].push(it);
+      else if (i < 4) map.Trending.push(it);
+    });
+    return map;
+  }, [items]);
+
+  const showTrending = category === "Trending" && items.length > 0;
 
   return (
     <main className="mx-auto max-w-md pt-10 pb-24 animate-fade-up">
@@ -70,7 +93,8 @@ function IndiaNewsPage() {
               India News
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              {state}{usedFallback ? " (showing All India)" : ""} · {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+              {state}{usedFallback ? " (showing All India)" : ""} · {category} ·{" "}
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
             </p>
           </div>
           <button
@@ -82,7 +106,8 @@ function IndiaNewsPage() {
           </button>
         </div>
 
-        <div className="mb-5 flex gap-2 overflow-x-auto scrollbar-none">
+        {/* State selector */}
+        <div className="mb-3 flex gap-2 overflow-x-auto scrollbar-none">
           {INDIA_STATES.map((s) => (
             <button
               key={s}
@@ -97,6 +122,23 @@ function IndiaNewsPage() {
             </button>
           ))}
         </div>
+
+        {/* Category tabs */}
+        <div className="mb-5 flex gap-2 overflow-x-auto scrollbar-none">
+          {INDIA_NEWS_CATEGORIES.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`shrink-0 rounded-full px-3.5 py-1 text-[12px] font-medium transition border ${
+                category === c
+                  ? "bg-white/10 text-white border-white/20"
+                  : "text-muted-foreground border-transparent hover:text-white/80"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading && (
@@ -107,7 +149,7 @@ function IndiaNewsPage() {
         </div>
       )}
 
-      {error && (
+      {error && !isLoading && (
         <div className="mx-5 market-card p-6 text-center">
           <AlertCircle className="mx-auto mb-2 h-6 w-6 text-destructive" />
           <p className="text-sm text-muted-foreground">
@@ -122,13 +164,55 @@ function IndiaNewsPage() {
         </div>
       )}
 
+      {/* Trending horizontal scrollers */}
+      {showTrending &&
+        TRENDING_BUCKETS.map(({ key, label, icon: Icon }) => {
+          const list = trendingByBucket[key];
+          if (!list || list.length === 0) return null;
+          return (
+            <section key={key} className="mb-5">
+              <h2 className="mb-2 px-5 flex items-center gap-1.5 text-[13px] font-semibold text-white/90">
+                <Icon className="h-3.5 w-3.5 text-violet" />
+                {label}
+              </h2>
+              <div className="flex gap-3 overflow-x-auto scrollbar-none px-5 pb-1">
+                {list.slice(0, 8).map((item, i) => (
+                  <article
+                    key={`${key}-${i}`}
+                    className="market-card overflow-hidden shrink-0 w-60 transition-transform hover:-translate-y-0.5"
+                  >
+                    <NewsThumb title={item.title} category={item.category} className="h-28 w-full" width={400} height={240}>
+                      <span className="absolute left-2 top-2 rounded-full bg-black/55 backdrop-blur px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white">
+                        {item.category}
+                      </span>
+                    </NewsThumb>
+                    <div className="p-3">
+                      <h3 className="text-[12.5px] font-semibold leading-snug line-clamp-2">{item.title}</h3>
+                      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <span className="font-medium text-white/80">{item.source}</span>
+                        <span>·</span>
+                        <Clock className="h-2.5 w-2.5" />
+                        <span>{timeAgo(item.minutesAgo)}</span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+      {/* Main feed */}
       {data && (
         <div className="px-5 space-y-3">
+          {showTrending && (
+            <h2 className="pt-1 text-[13px] font-semibold text-white/90">Latest</h2>
+          )}
           {items.map((item, i) => (
             <article
               key={i}
               className="market-card overflow-hidden animate-card-enter transition-transform hover:-translate-y-0.5"
-              style={{ animationDelay: `${i * 50}ms` }}
+              style={{ animationDelay: `${i * 40}ms` }}
             >
               <NewsThumb title={item.title} category={item.category} className="h-40 w-full">
                 <span className="absolute left-3 top-3 rounded-full bg-black/50 backdrop-blur px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
