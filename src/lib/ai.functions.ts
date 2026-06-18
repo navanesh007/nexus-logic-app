@@ -132,7 +132,7 @@ export const sendChat = createServerFn({ method: "POST" })
             return { role, content: m.content };
           });
         const messages = [
-          { role: "system", content: SYSTEM_PROMPTS[data.mode] ?? SYSTEM_PROMPTS.normal },
+          { role: "system", content: (SYSTEM_PROMPTS[data.mode] ?? SYSTEM_PROMPTS.normal)() },
           ...history,
         ];
         const result = await callGateway("chat/completions", {
