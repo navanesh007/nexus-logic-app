@@ -21,11 +21,19 @@ export const Route = createFileRoute("/_authenticated/market")({
 
 function MarketPage() {
   const fetchMarket = useServerFn(getMarket);
+  const fetchExtras = useServerFn(getMarketExtras);
   const [kind, setKind] = useState<Kind>("nifty50");
+  const [range, setRange] = useState<Range>("1M");
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["market", kind],
     queryFn: () => fetchMarket({ data: { kind } }),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const extras = useQuery({
+    queryKey: ["market-extras", range],
+    queryFn: () => fetchExtras({ data: { symbol: "NIFTY", range } }),
     staleTime: 2 * 60 * 1000,
   });
 
