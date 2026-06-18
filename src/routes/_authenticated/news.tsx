@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { RefreshCw, AlertCircle, Clock } from "lucide-react";
 import { getNews } from "@/lib/insights.functions";
+import { NewsThumb } from "@/components/NewsThumb";
+
+
 
 type Category = "ai" | "technology" | "finance" | "crypto" | "world";
 const CATEGORIES: { id: Category; label: string }[] = [
@@ -19,17 +22,6 @@ export const Route = createFileRoute("/_authenticated/news")({
 });
 
 // deterministic gradient thumbnail per title
-function hash(str: string) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-  return h;
-}
-function thumbGradient(seed: string) {
-  const h = hash(seed);
-  const a = h % 360;
-  const b = (a + 60) % 360;
-  return `linear-gradient(135deg, hsl(${a} 70% 35%), hsl(${b} 70% 25%))`;
-}
 function sourceInitial(src: string) {
   return src
     .split(/\s+/)
@@ -125,19 +117,18 @@ function NewsPage() {
                 {top.map((item, i) => (
                   <article
                     key={i}
-                    className="snap-start shrink-0 w-[78%] market-card overflow-hidden animate-card-enter"
+                    className="snap-start shrink-0 w-[82%] market-card overflow-hidden animate-card-enter transition-transform hover:-translate-y-0.5"
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
-                    <div
-                      className="h-32 w-full relative"
-                      style={{ backgroundImage: thumbGradient(item.title) }}
+                    <NewsThumb
+                      title={item.title}
+                      category={item.category}
+                      className="h-44 w-full"
                     >
-                      <span className="absolute left-3 top-3 rounded-full bg-black/40 backdrop-blur px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      <span className="absolute left-3 top-3 rounded-full bg-black/50 backdrop-blur px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                         {item.category}
                       </span>
-                    </div>
-                    <div className="p-4">
-                      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center gap-1.5 text-[11px] text-white/90">
                         <span className="flex h-4 w-4 items-center justify-center rounded-full gradient-brand text-[8px] font-bold text-white">
                           {sourceInitial(item.source)}
                         </span>
@@ -146,7 +137,10 @@ function NewsPage() {
                         <Clock className="h-2.5 w-2.5" />
                         <span>{timeAgo(item.minutesAgo)}</span>
                       </div>
-                      <h3 className="text-[14px] font-semibold leading-snug line-clamp-3">{item.title}</h3>
+                    </NewsThumb>
+                    <div className="p-4">
+                      <h3 className="text-[15px] font-semibold leading-snug line-clamp-3">{item.title}</h3>
+                      <p className="mt-1.5 text-[12px] text-muted-foreground leading-snug line-clamp-2">{item.summary}</p>
                     </div>
                   </article>
                 ))}
@@ -159,15 +153,21 @@ function NewsPage() {
             {rest.map((item, i) => (
               <article
                 key={i}
-                className="market-card overflow-hidden animate-card-enter flex gap-3 p-3"
+                className="market-card overflow-hidden animate-card-enter flex gap-3 p-3 transition-transform hover:-translate-y-0.5"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
-                <div
-                  className="h-20 w-20 shrink-0 rounded-2xl"
-                  style={{ backgroundImage: thumbGradient(item.title) }}
+                <NewsThumb
+                  title={item.title}
+                  category={item.category}
+                  className="h-24 w-24 shrink-0 rounded-2xl"
+                  width={240}
+                  height={240}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary">
+                      {item.category}
+                    </span>
                     <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full gradient-brand text-[7px] font-bold text-white">
                       {sourceInitial(item.source)}
                     </span>
@@ -175,7 +175,7 @@ function NewsPage() {
                     <span>·</span>
                     <span>{timeAgo(item.minutesAgo)}</span>
                   </div>
-                  <h3 className="text-[13px] font-semibold leading-snug line-clamp-2">{item.title}</h3>
+                  <h3 className="text-[14px] font-semibold leading-snug line-clamp-2">{item.title}</h3>
                   <p className="mt-1 text-[11px] text-muted-foreground leading-snug line-clamp-2">{item.summary}</p>
                 </div>
               </article>
