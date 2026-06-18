@@ -154,7 +154,14 @@ export const getUserMemory = createServerFn({ method: "GET" })
 
 /** Re-summarize durable facts about the user. Called fire-and-forget. */
 export async function distillUserMemory(
-  supabase: ReturnType<typeof createClientStub>,
+  supabase: {
+    from: (t: string) => {
+      upsert: (
+        v: Record<string, unknown>,
+        o?: { onConflict?: string },
+      ) => Promise<unknown>;
+    };
+  },
   userId: string,
   existingMemory: string,
   recentTurns: Array<{ role: string; content: string }>,
@@ -171,7 +178,7 @@ ${existingMemory || "(empty)"}
 RECENT CONVERSATION TURNS:
 ${turnsText}
 
-Update the memory to capture ONLY durable, reusable facts: the user's name, location, profession, ongoing projects, stated preferences, frequently-discussed topics, recurring goals, language/timezone if mentioned. 
+Update the memory to capture ONLY durable, reusable facts: the user's name, location, profession, ongoing projects, stated preferences, frequently-discussed topics, recurring goals, language/timezone if mentioned.
 DO NOT include: one-off questions, transient facts, anything the user did not state about themselves.
 Output the new memory as a compact bullet list (max 12 bullets, each under 140 chars). If nothing durable was learned, output the existing memory unchanged. Output ONLY the bullet list.`;
     const result = await callGateway("chat/completions", {
@@ -189,16 +196,6 @@ Output the new memory as a compact bullet list (max 12 bullets, each under 140 c
   } catch (err) {
     console.warn("[ai] memory distill skipped", err);
   }
-}
-
-// Type helper for the supabase client passed in. We avoid importing SupabaseClient to keep this file light.
-function createClientStub() {
-  return null as unknown as {
-    from: (t: string) => {
-      upsert: (v: unknown, o?: unknown) => Promise<unknown>;
-      select: (c: string) => unknown;
-    };
-  };
 }
 
 /**
