@@ -227,7 +227,7 @@ export const sendChat = createServerFn({ method: "POST" })
         if (choice?.finish_reason && choice.finish_reason !== "stop") {
           console.warn("[sendChat] non-stop finish_reason:", choice.finish_reason);
         }
-        if (draft !== "(no response)" && data.mode !== "image" && needsVerification(data.prompt, draft)) {
+        if (draft !== "(no response)" && needsVerification(data.prompt, draft)) {
           draft = await verifyAndCorrect(data.prompt, draft, history);
         }
         assistantContent = draft;
