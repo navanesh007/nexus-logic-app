@@ -11,9 +11,13 @@ import {
   Image as ImageIcon,
   Paperclip,
   X,
+  Mic,
+  Volume2,
+  Square,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendChat } from "@/lib/ai.functions";
+import { getSpeechRecognition, speak, stopSpeaking, isTtsSupported } from "@/lib/voice";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/chat/$id")({
@@ -57,8 +61,55 @@ function ChatPage() {
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState("New chat");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recogRef = useRef<ReturnType<typeof getSpeechRecognition>>(null);
+
+  function toggleMic() {
+    if (listening) {
+      recogRef.current?.stop();
+      return;
+    }
+    const r = getSpeechRecognition();
+    if (!r) {
+      toast.error("Voice input isn't supported in this browser.");
+      return;
+    }
+    recogRef.current = r;
+    r.onresult = (e) => {
+      const text = Array.from(e.results)
+        .map((res) => res[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
+      if (text) setInput((prev) => (prev ? prev + " " + text : text));
+    };
+    r.onerror = () => setListening(false);
+    r.onend = () => setListening(false);
+    try {
+      r.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  }
+
+  function toggleSpeak(msgId: string, text: string) {
+    if (speakingId === msgId) {
+      stopSpeaking();
+      setSpeakingId(null);
+      return;
+    }
+    if (!isTtsSupported()) {
+      toast.error("Text-to-speech isn't supported in this browser.");
+      return;
+    }
+    setSpeakingId(msgId);
+    speak(text, () => setSpeakingId((cur) => (cur === msgId ? null : cur)));
+  }
+
+  useEffect(() => () => stopSpeaking(), []);
 
   useEffect(() => {
     void (async () => {
@@ -196,6 +247,17 @@ function ChatPage() {
               {m.content && (
                 <div className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</div>
               )}
+              {m.role === "assistant" && m.content && (
+                <button
+                  type="button"
+                  onClick={() => toggleSpeak(m.id, m.content)}
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+                  aria-label={speakingId === m.id ? "Stop speaking" : "Read aloud"}
+                >
+                  {speakingId === m.id ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                  {speakingId === m.id ? "Stop" : "Listen"}
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -286,6 +348,18 @@ function ChatPage() {
             }
             className="flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground max-h-32"
           />
+          <button
+            type="button"
+            onClick={toggleMic}
+            disabled={sending}
+            title={listening ? "Stop listening" : "Voice input"}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground disabled:opacity-40 ${
+              listening ? "gradient-brand text-white animate-pulse" : "glass"
+            }`}
+            aria-label="Voice input"
+          >
+            <Mic className="h-4 w-4" />
+          </button>
           <button
             type="submit"
             disabled={sending || (!input.trim() && !attachedImage)}

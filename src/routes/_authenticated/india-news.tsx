@@ -33,11 +33,32 @@ function IndiaNewsPage() {
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["india-news", state],
-    queryFn: () => fetchNews({ data: { state } }),
+    queryFn: async () => {
+      try {
+        const res = await fetchNews({ data: { state } });
+        if (!res?.items?.length && state !== "All India") {
+          const fb = await fetchNews({ data: { state: "All India" } });
+          return { ...fb, fallback: true as const };
+        }
+        return res;
+      } catch (err) {
+        if (state !== "All India") {
+          try {
+            const fb = await fetchNews({ data: { state: "All India" } });
+            return { ...fb, fallback: true as const };
+          } catch {
+            throw err;
+          }
+        }
+        throw err;
+      }
+    },
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   const items = data?.items ?? [];
+  const usedFallback = (data as { fallback?: boolean } | undefined)?.fallback;
 
   return (
     <main className="mx-auto max-w-md pt-10 pb-24 animate-fade-up">
@@ -49,7 +70,7 @@ function IndiaNewsPage() {
               India News
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              {state} · {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+              {state}{usedFallback ? " (showing All India)" : ""} · {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
             </p>
           </div>
           <button
