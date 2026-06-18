@@ -42,12 +42,16 @@ export const sendChat = createServerFn({ method: "POST" })
       chatId: z.string().uuid(),
       mode: Mode,
       prompt: z.string().min(1).max(8000),
+      imageDataUrl: z
+        .string()
+        .regex(/^data:image\/(png|jpe?g|webp|gif);base64,/i)
+        .max(10_000_000)
+        .optional(),
     }),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Verify chat ownership
     const { data: chat, error: chatErr } = await supabase
       .from("chats")
       .select("id, title, mode")
@@ -60,12 +64,12 @@ export const sendChat = createServerFn({ method: "POST" })
     }
     if (!chat) throw new Error("Chat not found");
 
-    // Save user message
     const { error: userMsgErr } = await supabase.from("messages").insert({
       chat_id: data.chatId,
       user_id: userId,
       role: "user",
       content: data.prompt,
+      image_url: data.imageDataUrl ?? null,
     });
     if (userMsgErr) {
       console.error("[sendChat] user message insert failed", userMsgErr);
@@ -91,23 +95,29 @@ export const sendChat = createServerFn({ method: "POST" })
         assistantImage = url;
         assistantContent = `Generated image for: "${data.prompt}"`;
       } else {
-        // Build context from most recent 20 messages (chronological order)
         const { data: recent, error: histErr } = await supabase
           .from("messages")
-          .select("role, content, created_at")
+          .select("role, content, image_url, created_at")
           .eq("chat_id", data.chatId)
           .order("created_at", { ascending: false })
           .limit(20);
-        if (histErr) {
-          console.error("[sendChat] history fetch failed", histErr);
-        }
+        if (histErr) console.error("[sendChat] history fetch failed", histErr);
         const history = (recent ?? [])
           .slice()
           .reverse()
-          .map((m: { role: string; content: string }) => ({
-            role: m.role === "assistant" ? "assistant" : "user",
-            content: m.content,
-          }));
+          .map((m: { role: string; content: string; image_url: string | null }) => {
+            const role = m.role === "assistant" ? "assistant" : "user";
+            if (role === "user" && m.image_url && m.image_url.startsWith("data:image/")) {
+              return {
+                role,
+                content: [
+                  { type: "text", text: m.content || "" },
+                  { type: "image_url", image_url: { url: m.image_url } },
+                ],
+              };
+            }
+            return { role, content: m.content };
+          });
         const messages = [
           { role: "system", content: SYSTEM_PROMPTS[data.mode] ?? SYSTEM_PROMPTS.normal },
           ...history,
@@ -143,13 +153,9 @@ export const sendChat = createServerFn({ method: "POST" })
       throw new Error(saveErr.message);
     }
 
-    // Auto-title chat from first user prompt
     if (chat.title === "New chat") {
-      const title = data.prompt.slice(0, 60);
-      await supabase
-        .from("chats")
-        .update({ title, mode: data.mode })
-        .eq("id", data.chatId);
+      const title = data.prompt.slice(0, 60) || "New chat";
+      await supabase.from("chats").update({ title, mode: data.mode }).eq("id", data.chatId);
     } else {
       await supabase
         .from("chats")
