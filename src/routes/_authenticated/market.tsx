@@ -73,30 +73,43 @@ function MarketPage() {
 
       {data && (
         <div className="space-y-4">
-          <div className="space-y-2">
-            {data.assets.map((a) => {
+          <div className="space-y-3">
+            {data.assets.map((a, i) => {
               const up = a.trend === "up" || a.changePct > 0;
               const down = a.trend === "down" || a.changePct < 0;
-              const Icon = up ? TrendingUp : down ? TrendingDown : Minus;
-              const color = up ? "text-green-500" : down ? "text-red-500" : "text-muted-foreground";
               return (
                 <div
                   key={a.symbol}
-                  className="flex items-center justify-between rounded-2xl glass-strong px-4 py-3"
+                  className="market-card animate-card-enter flex items-center justify-between px-6 py-5"
+                  style={{ animationDelay: `${i * 60}ms` }}
                 >
-                  <div>
-                    <div className="text-sm font-semibold">{a.symbol}</div>
-                    <div className="text-xs text-muted-foreground">{a.name}</div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[15px] font-bold tracking-tight">{a.symbol}</span>
+                    <span className="text-[11px] font-medium text-muted-foreground leading-none">{a.name}</span>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-[15px] font-semibold tabular-nums tracking-tight">
                       ${a.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    </div>
-                    <div className={`flex items-center justify-end gap-1 text-xs ${color}`}>
-                      <Icon className="h-3 w-3" />
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${
+                        up
+                          ? "bg-green-500/12 text-green-400 border-green-500/20"
+                          : down
+                          ? "bg-red-500/12 text-red-400 border-red-500/20"
+                          : "bg-muted/60 text-muted-foreground border-border"
+                      }`}
+                    >
+                      {up ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : down ? (
+                        <TrendingDown className="h-3 w-3" />
+                      ) : (
+                        <Minus className="h-3 w-3" />
+                      )}
                       {a.changePct > 0 ? "+" : ""}
                       {a.changePct.toFixed(2)}%
-                    </div>
+                    </span>
                   </div>
                 </div>
               );
