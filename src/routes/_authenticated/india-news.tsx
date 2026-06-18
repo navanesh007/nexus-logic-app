@@ -70,7 +70,7 @@ function IndiaNewsPage() {
               India News
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              {state} · {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+              {state}{usedFallback ? " (showing All India)" : ""} · {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
             </p>
           </div>
           <button
