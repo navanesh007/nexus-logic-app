@@ -65,51 +65,51 @@ function ChatPage() {
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const recogRef = useRef<ReturnType<typeof getSpeechRecognition>>(null);
+  const recRef = useRef<Recorder | null>(null);
 
-  function toggleMic() {
+  async function toggleMic() {
     if (listening) {
-      recogRef.current?.stop();
+      const rec = recRef.current;
+      recRef.current = null;
+      setListening(false);
+      if (!rec) return;
+      try {
+        const blob = await rec.stop();
+        const text = await transcribeBlob(blob);
+        if (text) setInput((prev) => (prev ? prev + " " + text : text));
+      } catch (err) {
+        toast.error((err as Error).message || "Couldn't transcribe.");
+      }
       return;
     }
-    const r = getSpeechRecognition();
-    if (!r) {
-      toast.error("Voice input isn't supported in this browser.");
-      return;
-    }
-    recogRef.current = r;
-    r.onresult = (e) => {
-      const text = Array.from(e.results)
-        .map((res) => res[0]?.transcript ?? "")
-        .join(" ")
-        .trim();
-      if (text) setInput((prev) => (prev ? prev + " " + text : text));
-    };
-    r.onerror = () => setListening(false);
-    r.onend = () => setListening(false);
     try {
-      r.start();
+      recRef.current = await startRecording();
       setListening(true);
-    } catch {
+    } catch (err) {
+      toast.error((err as Error).message || "Mic permission needed.");
       setListening(false);
     }
   }
 
   function toggleSpeak(msgId: string, text: string) {
     if (speakingId === msgId) {
+      stopServerSpeech();
       stopSpeaking();
       setSpeakingId(null);
       return;
     }
-    if (!isTtsSupported()) {
-      toast.error("Text-to-speech isn't supported in this browser.");
-      return;
-    }
     setSpeakingId(msgId);
-    speak(text, () => setSpeakingId((cur) => (cur === msgId ? null : cur)));
+    void speakWithServer(text, () => setSpeakingId((cur) => (cur === msgId ? null : cur))).catch(() => {
+      if (!isTtsSupported()) {
+        toast.error("Text-to-speech isn't supported in this browser.");
+        setSpeakingId(null);
+        return;
+      }
+      speak(text, () => setSpeakingId((cur) => (cur === msgId ? null : cur)));
+    });
   }
 
-  useEffect(() => () => stopSpeaking(), []);
+  useEffect(() => () => { stopServerSpeech(); stopSpeaking(); }, []);
 
   useEffect(() => {
     void (async () => {
