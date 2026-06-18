@@ -72,6 +72,69 @@ Return ONLY valid JSON, no prose, no code fences:
     return { items, generatedAt: new Date().toISOString() };
   });
 
+/* ---------------- INDIA NEWS ---------------- */
+
+const INDIAN_STATES = [
+  "All India",
+  "Tamil Nadu",
+  "Kerala",
+  "Karnataka",
+  "Andhra Pradesh",
+  "Telangana",
+  "Maharashtra",
+  "Delhi",
+  "Gujarat",
+  "West Bengal",
+  "Rajasthan",
+  "Punjab",
+  "Odisha",
+  "Bihar",
+  "Uttar Pradesh",
+  "Madhya Pradesh",
+  "Assam",
+] as const;
+
+export const getIndiaNews = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ state: z.enum(INDIAN_STATES) }).parse)
+  .handler(async ({ data }) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const scope =
+      data.state === "All India"
+        ? "pan-India national news (politics, economy, technology, sports, culture)"
+        : `news specifically from the Indian state of ${data.state} (state politics, local economy, cities, culture, sports)`;
+    const prompt = `Generate 8 plausible TODAY (${today}) headlines covering ${scope}.
+Return ONLY valid JSON, no prose, no code fences:
+{"items":[{"title":"...","summary":"1-2 sentence neutral summary","source":"Indian publication name","minutesAgo":12,"category":"Politics|Economy|Tech|Sports|Culture|City"}]}
+- "minutesAgo": integer 5..600.
+- Use real Indian publications (The Hindu, Times of India, Hindustan Times, Indian Express, NDTV, The Print, Mint, Moneycontrol, News18, Deccan Herald, The Telegraph India).
+- Headlines must clearly reflect ${data.state === "All India" ? "India" : data.state}.`;
+    const result = await callGateway("chat/completions", {
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an Indian news curator for Open1 AI. Produce concise, neutral, factual-sounding briefings. Output strict JSON only.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+    const text: string = result?.choices?.[0]?.message?.content ?? "";
+    const parsed = extractJson(text) as { items?: unknown[] };
+    const Item = z.object({
+      title: z.string(),
+      summary: z.string(),
+      source: z.string().optional().default("The Hindu"),
+      minutesAgo: z.number().optional().default(30),
+      category: z.string().optional().default("India"),
+    });
+    const items = z.array(Item).parse(parsed.items ?? []);
+    return { items, state: data.state, generatedAt: new Date().toISOString() };
+  });
+
+export const INDIA_STATES = INDIAN_STATES;
+
 /* ---------------- MARKET ---------------- */
 
 const MarketKind = z.enum(["nifty50", "banknifty", "crypto"]);
