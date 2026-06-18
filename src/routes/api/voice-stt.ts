@@ -23,12 +23,13 @@ export const Route = createFileRoute("/api/voice-stt")({
         if (error || !claims?.claims?.sub) return new Response("Unauthorized", { status: 401 });
 
         const incoming = await request.formData();
-        const file = incoming.get("file");
-        if (!(file instanceof File) && !(file instanceof Blob)) {
+        const raw = incoming.get("file");
+        if (!raw || typeof raw === "string") {
           return new Response("Missing audio file", { status: 400 });
         }
-        if ((file as Blob).size < 1024) return new Response("Empty audio", { status: 400 });
-        if ((file as Blob).size > 24 * 1024 * 1024) return new Response("Audio too large", { status: 413 });
+        const file = raw as Blob;
+        if (file.size < 1024) return new Response("Empty audio", { status: 400 });
+        if (file.size > 24 * 1024 * 1024) return new Response("Audio too large", { status: 413 });
 
         const upstream = new FormData();
         const blob = file as Blob;
