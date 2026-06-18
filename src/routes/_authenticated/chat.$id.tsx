@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendChat } from "@/lib/ai.functions";
-import { getSpeechRecognition, speak, stopSpeaking, isTtsSupported } from "@/lib/voice";
+import { startRecording, transcribeBlob, speak, speakWithServer, stopSpeaking, stopServerSpeech, isTtsSupported, type Recorder } from "@/lib/voice";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/chat/$id")({
