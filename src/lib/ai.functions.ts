@@ -47,14 +47,18 @@ export const sendChat = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Verify chat ownership and get message history
+    // Verify chat ownership
     const { data: chat, error: chatErr } = await supabase
       .from("chats")
       .select("id, title, mode")
       .eq("id", data.chatId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (chatErr || !chat) throw new Error("Chat not found");
+    if (chatErr) {
+      console.error("[sendChat] chat lookup failed", chatErr);
+      throw new Error("Chat lookup failed");
+    }
+    if (!chat) throw new Error("Chat not found");
 
     // Save user message
     const { error: userMsgErr } = await supabase.from("messages").insert({
@@ -63,44 +67,64 @@ export const sendChat = createServerFn({ method: "POST" })
       role: "user",
       content: data.prompt,
     });
-    if (userMsgErr) throw new Error(userMsgErr.message);
+    if (userMsgErr) {
+      console.error("[sendChat] user message insert failed", userMsgErr);
+      throw new Error(userMsgErr.message);
+    }
 
     let assistantContent = "";
     let assistantImage: string | null = null;
 
-    if (data.mode === "image") {
-      const result = await callGateway("images/generations", {
-        model: "google/gemini-2.5-flash-image",
-        prompt: data.prompt,
-      });
-      const url: string | undefined =
-        result?.data?.[0]?.url ?? result?.data?.[0]?.b64_json
-          ? result.data[0].url ?? `data:image/png;base64,${result.data[0].b64_json}`
-          : undefined;
-      if (!url) throw new Error("No image returned");
-      assistantImage = url;
-      assistantContent = `Generated image for: "${data.prompt}"`;
-    } else {
-      // Build history (last 20 messages) for context
-      const { data: history } = await supabase
-        .from("messages")
-        .select("role, content")
-        .eq("chat_id", data.chatId)
-        .order("created_at", { ascending: true })
-        .limit(20);
-      const messages = [
-        { role: "system", content: SYSTEM_PROMPTS[data.mode] ?? SYSTEM_PROMPTS.normal },
-        ...(history ?? []).map((m: { role: string; content: string }) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      ];
-      const result = await callGateway("chat/completions", {
-        model: "google/gemini-3-flash-preview",
-        messages,
-      });
-      assistantContent =
-        result?.choices?.[0]?.message?.content ?? "(no response)";
+    try {
+      if (data.mode === "image") {
+        const result = await callGateway("images/generations", {
+          model: "google/gemini-2.5-flash-image",
+          prompt: data.prompt,
+        });
+        const first = result?.data?.[0];
+        const url: string | undefined = first?.url
+          ? first.url
+          : first?.b64_json
+            ? `data:image/png;base64,${first.b64_json}`
+            : undefined;
+        if (!url) throw new Error("No image returned");
+        assistantImage = url;
+        assistantContent = `Generated image for: "${data.prompt}"`;
+      } else {
+        // Build context from most recent 20 messages (chronological order)
+        const { data: recent, error: histErr } = await supabase
+          .from("messages")
+          .select("role, content, created_at")
+          .eq("chat_id", data.chatId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (histErr) {
+          console.error("[sendChat] history fetch failed", histErr);
+        }
+        const history = (recent ?? [])
+          .slice()
+          .reverse()
+          .map((m: { role: string; content: string }) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: m.content,
+          }));
+        const messages = [
+          { role: "system", content: SYSTEM_PROMPTS[data.mode] ?? SYSTEM_PROMPTS.normal },
+          ...history,
+        ];
+        const result = await callGateway("chat/completions", {
+          model: "google/gemini-3-flash-preview",
+          messages,
+        });
+        const choice = result?.choices?.[0];
+        assistantContent = choice?.message?.content?.trim() || "(no response)";
+        if (choice?.finish_reason && choice.finish_reason !== "stop") {
+          console.warn("[sendChat] non-stop finish_reason:", choice.finish_reason);
+        }
+      }
+    } catch (err) {
+      console.error("[sendChat] model call failed", err);
+      throw err;
     }
 
     const { data: saved, error: saveErr } = await supabase
@@ -114,7 +138,10 @@ export const sendChat = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (saveErr) throw new Error(saveErr.message);
+    if (saveErr) {
+      console.error("[sendChat] assistant insert failed", saveErr);
+      throw new Error(saveErr.message);
+    }
 
     // Auto-title chat from first user prompt
     if (chat.title === "New chat") {
@@ -124,7 +151,10 @@ export const sendChat = createServerFn({ method: "POST" })
         .update({ title, mode: data.mode })
         .eq("id", data.chatId);
     } else {
-      await supabase.from("chats").update({ updated_at: new Date().toISOString() }).eq("id", data.chatId);
+      await supabase
+        .from("chats")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", data.chatId);
     }
 
     return saved;
