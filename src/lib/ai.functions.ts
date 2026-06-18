@@ -231,6 +231,8 @@ export const sendChat = createServerFn({ method: "POST" })
           draft = await verifyAndCorrect(data.prompt, draft, history);
         }
         assistantContent = draft;
+      }
+    } catch (err) {
       console.error("[sendChat] model call failed", err);
       throw err;
     }
