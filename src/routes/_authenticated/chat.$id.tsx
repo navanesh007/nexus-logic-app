@@ -61,8 +61,55 @@ function ChatPage() {
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState("New chat");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recogRef = useRef<ReturnType<typeof getSpeechRecognition>>(null);
+
+  function toggleMic() {
+    if (listening) {
+      recogRef.current?.stop();
+      return;
+    }
+    const r = getSpeechRecognition();
+    if (!r) {
+      toast.error("Voice input isn't supported in this browser.");
+      return;
+    }
+    recogRef.current = r;
+    r.onresult = (e) => {
+      const text = Array.from(e.results)
+        .map((res) => res[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
+      if (text) setInput((prev) => (prev ? prev + " " + text : text));
+    };
+    r.onerror = () => setListening(false);
+    r.onend = () => setListening(false);
+    try {
+      r.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  }
+
+  function toggleSpeak(msgId: string, text: string) {
+    if (speakingId === msgId) {
+      stopSpeaking();
+      setSpeakingId(null);
+      return;
+    }
+    if (!isTtsSupported()) {
+      toast.error("Text-to-speech isn't supported in this browser.");
+      return;
+    }
+    setSpeakingId(msgId);
+    speak(text, () => setSpeakingId((cur) => (cur === msgId ? null : cur)));
+  }
+
+  useEffect(() => () => stopSpeaking(), []);
 
   useEffect(() => {
     void (async () => {
