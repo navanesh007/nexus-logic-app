@@ -1,41 +1,49 @@
-# Advanced AI Upgrade — Phased Plan
+# Phases 9–15 Implementation Plan
 
-Scope is large. Shipping it all in one pass will introduce regressions in the chat, market, and news flows you've asked me to protect. I'll deliver it in 4 phases, each independently usable.
+This is a large batch. I'll ship it in 3 sequential turns so each piece is verifiable. No existing UI is redesigned — only new modes, new routes, and additive logic.
 
-## Phase 1 — AI Core (this turn)
-The brain upgrade. No new pages, no UI redesign.
+## Turn A — AI brains & voice (Phases 9, 10, 13-writing/coding)
 
-- **Real token streaming**: new server route `src/routes/api/chat-stream.ts` that pipes the Lovable AI Gateway SSE response straight to the client. Chat page switches to fetch-stream, appending tokens to a live "typing" bubble.
-- **Async verification**: streamed answer shows first; for math/code/date/factual prompts a background verify pass runs after stream completes and, if it finds a correction, replaces the saved message and shows a subtle "refined" badge.
-- **Deep Think mode**: stronger reasoning system prompt with explicit verify-self-correct loop. Already partially in place — tightened.
-- **Hallucination guard**: critic prompt updated to require "I'm not certain" instead of inventing facts; bans fabricated URLs/citations/stats.
-- **Long-term memory**: new `user_memory` table (RLS, per-user). After each chat ends or every N turns, a tiny serverFn distills durable facts (name, preferences, recurring topics) and stores them. Injected into the system prompt on every new chat.
-- **Agent mode**: enabled inside Think mode — model is instructed to plan → execute → verify in sequence.
+**Deep Search mode (Phase 9)**
+- Add `mode: "search"` to `chat-stream.ts`. When active, call Lovable AI with `google/gemini-3-flash-preview` plus a web-grounded system prompt that requires inline `[n]` citations and a final `Sources:` list.
+- Add a "🔎 Search" toggle in chat composer (no UI redesign — same button row as existing modes).
+- Add Deep Research sub-mode: multi-step (decompose → search → synthesize) using same model with longer context.
 
-## Phase 2 — Multimodal & Web (next turn)
-- **Image understanding**: already wired (vision via Gemini). Add OCR/chart-reading prompts and a "Describe / Read text / Solve" quick-action row when an image is attached.
-- **Document analysis**: paperclip accepts PDF/DOCX/TXT, parsed client-side (pdfjs-dist + mammoth), text injected as context with a "Summarize / Key points / Q&A" quick-action row.
-- **Web search mode**: new mode pill "Search". Server fn calls a search API and feeds top snippets into the model with inline source links.
+**Voice AI (Phase 10)**
+- New `src/routes/api/voice-stt.ts` → proxies to Lovable AI `/audio/transcriptions` (`openai/gpt-4o-mini-transcribe`, streaming SSE).
+- New `src/routes/api/voice-tts.ts` → proxies to `/audio/speech` (`openai/gpt-4o-mini-tts`, PCM SSE).
+- Extend `src/lib/voice.ts` with `recordAndTranscribe()` and `speak(text)` helpers (MediaRecorder + WebAudio PCM playback). Wire to existing mic button.
 
-## Phase 3 — Finance tools (next turn)
-- New tables: `portfolio_holdings`, `watchlist` (RLS, per-user).
-- New route `/portfolio` with add/edit/delete holdings, live P&L using existing market API.
-- "Star" button on market rows to add to watchlist; watchlist section on market page (without redesigning it).
-- **Market AI**: serverFn that takes a symbol + recent price action and returns `{ stance: bullish|bearish|neutral, confidence: 0-100, reasoning }`. Shown as a card on each symbol.
+**AI Tools page (Phase 13 writing + coding)**
+- New route `/_authenticated/tools` with cards: Email, Blog, Resume, Cover Letter, Code Gen, Code Explain, Code Debug, Image Gen, Image Edit.
+- Each card opens an inline drawer that calls a new `runTool` serverFn (reuses Lovable AI).
+- Image gen/edit calls `google/gemini-3-flash-image-preview` via existing pattern.
 
-## Phase 4 — Utility pages & Voice (final turn)
-- `/weather`: location-based, OpenWeather (free tier) — temp/humidity/AQI/rain.
-- `/calendar`: tasks, notes, reminders. New `reminders` table. Local notification when due.
-- **Voice assistant**: replace browser SpeechRecognition with Lovable AI `/audio/transcriptions` (streaming STT), and current `speechSynthesis` with Lovable AI `/audio/speech` (streaming TTS). English only.
-- Add nav entries for Portfolio, Weather, Calendar in BottomNav.
+## Turn B — Market & News (Phases 11, 12)
+
+**Market upgrades (Phase 11)**
+- Extend `insights.functions.ts` with `getIndianIndices` (Nifty 50, Bank Nifty, Sensex via Yahoo Finance `^NSEI`, `^NSEBANK`, `^BSESN`).
+- Add `getTechnicals(symbol, range)` computing RSI, MACD, EMA-20, SMA-50, Bollinger Bands from Yahoo historical data.
+- Add `getSectorPerformance()` for Bank/IT/FMCG/Pharma/Auto sector indices.
+- Add new tabs/strips to existing Market page (Indices, Sectors, Indicators) — no redesign, glassmorphism preserved.
+
+**News expansion (Phase 12)**
+- Extend `insights.functions.ts` with `getCategorizedNews(state, category)` covering all categories.
+- Use GNews/Google News RSS fallback chain with image extraction; cache 5 min in-memory.
+- Add category chips + state selector to existing India News page (additive, same theme).
+- Add "Breaking" and "Today" sections.
+
+## Turn C — Finance system (Phase 15)
+
+- DB migration: `portfolio_holdings` and `watchlist` tables (RLS + GRANTs).
+- New route `/_authenticated/portfolio`: holdings table with live P&L (Yahoo quote), watchlist, add/remove.
+- New route `/_authenticated/calculators`: SIP, EMI, Compound Interest (pure-client math, no API).
+- BottomNav: add "Tools" and "Portfolio" entries (keep 5-tab layout — move existing items or add overflow menu).
 
 ## Technical notes
-- Streaming uses a TanStack server route (not `createServerFn`) so we can return a raw `ReadableStream`. Auth checked via Supabase session in the route handler.
-- Long-term memory uses `requireSupabaseAuth` serverFn, summarization with `google/gemini-3-flash-preview`.
-- All new tables get explicit GRANTs + RLS policies in their migration.
-- Glassmorphism theme + news/market/profile pages stay untouched.
+- All new server logic uses `createServerFn` + `requireSupabaseAuth` (or server routes for SSE streaming endpoints under `src/routes/api/`).
+- News/market APIs gracefully fall back to cached/mock data on failure (per existing pattern).
+- Chat streaming, memory distillation, verification pipeline from Phase 1 stay intact.
+- No edits to: auth pages, profile, Market existing rows, News existing layout, image upload, chat bubble UI, supabase client files.
 
-## What won't change
-Auth, profile page, market page design, news page design, image upload pipeline, existing APIs, existing chat history.
-
-Approve and I'll ship Phase 1 (streaming + memory + verification + deep think + hallucination guard) now.
+**Scope check:** Phase 14 wasn't in your list — skipping. Confirm to proceed with Turn A, or tell me to reorder.
