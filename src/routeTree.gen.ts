@@ -12,15 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as ApiChatStreamRouteImport } from './routes/api/chat-stream'
-import { Route as ApiVoiceSttRouteImport } from './routes/api/voice-stt'
 import { Route as ApiVoiceTtsRouteImport } from './routes/api/voice-tts'
+import { Route as ApiVoiceSttRouteImport } from './routes/api/voice-stt'
+import { Route as ApiChatStreamRouteImport } from './routes/api/chat-stream'
+import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
 import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/news'
 import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
 import { Route as AuthenticatedIndiaNewsRouteImport } from './routes/_authenticated/india-news'
-import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
-import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
 import { Route as AuthenticatedCalculatorsRouteImport } from './routes/_authenticated/calculators'
 import { Route as AuthenticatedChatIdRouteImport } from './routes/_authenticated/chat.$id'
 
@@ -38,9 +38,9 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
-  id: '/api/chat-stream',
-  path: '/api/chat-stream',
+const ApiVoiceTtsRoute = ApiVoiceTtsRouteImport.update({
+  id: '/api/voice-tts',
+  path: '/api/voice-tts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVoiceSttRoute = ApiVoiceSttRouteImport.update({
@@ -48,14 +48,24 @@ const ApiVoiceSttRoute = ApiVoiceSttRouteImport.update({
   path: '/api/voice-stt',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiVoiceTtsRoute = ApiVoiceTtsRouteImport.update({
-  id: '/api/voice-tts',
-  path: '/api/voice-tts',
+const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
+  id: '/api/chat-stream',
+  path: '/api/chat-stream',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPortfolioRoute = AuthenticatedPortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNewsRoute = AuthenticatedNewsRouteImport.update({
@@ -73,21 +83,12 @@ const AuthenticatedIndiaNewsRoute = AuthenticatedIndiaNewsRouteImport.update({
   path: '/india-news',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
-  id: '/tools',
-  path: '/tools',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPortfolioRoute = AuthenticatedPortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCalculatorsRoute = AuthenticatedCalculatorsRouteImport.update({
-  id: '/calculators',
-  path: '/calculators',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedCalculatorsRoute =
+  AuthenticatedCalculatorsRouteImport.update({
+    id: '/calculators',
+    path: '/calculators',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
@@ -97,13 +98,13 @@ const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/calculators': typeof AuthenticatedCalculatorsRoute
   '/india-news': typeof AuthenticatedIndiaNewsRoute
   '/market': typeof AuthenticatedMarketRoute
   '/news': typeof AuthenticatedNewsRoute
+  '/portfolio': typeof AuthenticatedPortfolioRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/tools': typeof AuthenticatedToolsRoute
-  '/portfolio': typeof AuthenticatedPortfolioRoute
-  '/calculators': typeof AuthenticatedCalculatorsRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/voice-stt': typeof ApiVoiceSttRoute
   '/api/voice-tts': typeof ApiVoiceTtsRoute
@@ -111,13 +112,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/calculators': typeof AuthenticatedCalculatorsRoute
   '/india-news': typeof AuthenticatedIndiaNewsRoute
   '/market': typeof AuthenticatedMarketRoute
   '/news': typeof AuthenticatedNewsRoute
+  '/portfolio': typeof AuthenticatedPortfolioRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/tools': typeof AuthenticatedToolsRoute
-  '/portfolio': typeof AuthenticatedPortfolioRoute
-  '/calculators': typeof AuthenticatedCalculatorsRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/voice-stt': typeof ApiVoiceSttRoute
   '/api/voice-tts': typeof ApiVoiceTtsRoute
@@ -128,13 +129,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/calculators': typeof AuthenticatedCalculatorsRoute
   '/_authenticated/india-news': typeof AuthenticatedIndiaNewsRoute
   '/_authenticated/market': typeof AuthenticatedMarketRoute
   '/_authenticated/news': typeof AuthenticatedNewsRoute
+  '/_authenticated/portfolio': typeof AuthenticatedPortfolioRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/tools': typeof AuthenticatedToolsRoute
-  '/_authenticated/portfolio': typeof AuthenticatedPortfolioRoute
-  '/_authenticated/calculators': typeof AuthenticatedCalculatorsRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/voice-stt': typeof ApiVoiceSttRoute
   '/api/voice-tts': typeof ApiVoiceTtsRoute
@@ -146,13 +147,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/calculators'
     | '/india-news'
     | '/market'
     | '/news'
+    | '/portfolio'
     | '/profile'
     | '/tools'
-    | '/portfolio'
-    | '/calculators'
     | '/api/chat-stream'
     | '/api/voice-stt'
     | '/api/voice-tts'
@@ -160,13 +161,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/calculators'
     | '/india-news'
     | '/market'
     | '/news'
+    | '/portfolio'
     | '/profile'
     | '/tools'
-    | '/portfolio'
-    | '/calculators'
     | '/api/chat-stream'
     | '/api/voice-stt'
     | '/api/voice-tts'
@@ -176,13 +177,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/calculators'
     | '/_authenticated/india-news'
     | '/_authenticated/market'
     | '/_authenticated/news'
+    | '/_authenticated/portfolio'
     | '/_authenticated/profile'
     | '/_authenticated/tools'
-    | '/_authenticated/portfolio'
-    | '/_authenticated/calculators'
     | '/api/chat-stream'
     | '/api/voice-stt'
     | '/api/voice-tts'
@@ -221,11 +222,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/chat-stream': {
-      id: '/api/chat-stream'
-      path: '/api/chat-stream'
-      fullPath: '/api/chat-stream'
-      preLoaderRoute: typeof ApiChatStreamRouteImport
+    '/api/voice-tts': {
+      id: '/api/voice-tts'
+      path: '/api/voice-tts'
+      fullPath: '/api/voice-tts'
+      preLoaderRoute: typeof ApiVoiceTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/voice-stt': {
@@ -235,18 +236,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVoiceSttRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/voice-tts': {
-      id: '/api/voice-tts'
-      path: '/api/voice-tts'
-      fullPath: '/api/voice-tts'
-      preLoaderRoute: typeof ApiVoiceTtsRouteImport
+    '/api/chat-stream': {
+      id: '/api/chat-stream'
+      path: '/api/chat-stream'
+      fullPath: '/api/chat-stream'
+      preLoaderRoute: typeof ApiChatStreamRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tools': {
+      id: '/_authenticated/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof AuthenticatedToolsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/portfolio': {
+      id: '/_authenticated/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof AuthenticatedPortfolioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/news': {
@@ -270,20 +285,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndiaNewsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/tools': {
-      id: '/_authenticated/tools'
-      path: '/tools'
-      fullPath: '/tools'
-      preLoaderRoute: typeof AuthenticatedToolsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/portfolio': {
-      id: '/_authenticated/portfolio'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof AuthenticatedPortfolioRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/calculators': {
       id: '/_authenticated/calculators'
       path: '/calculators'
@@ -302,25 +303,25 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCalculatorsRoute: typeof AuthenticatedCalculatorsRoute
   AuthenticatedIndiaNewsRoute: typeof AuthenticatedIndiaNewsRoute
   AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
   AuthenticatedNewsRoute: typeof AuthenticatedNewsRoute
+  AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
-  AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRoute
-  AuthenticatedCalculatorsRoute: typeof AuthenticatedCalculatorsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChatIdRoute: typeof AuthenticatedChatIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCalculatorsRoute: AuthenticatedCalculatorsRoute,
   AuthenticatedIndiaNewsRoute: AuthenticatedIndiaNewsRoute,
   AuthenticatedMarketRoute: AuthenticatedMarketRoute,
   AuthenticatedNewsRoute: AuthenticatedNewsRoute,
+  AuthenticatedPortfolioRoute: AuthenticatedPortfolioRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedToolsRoute: AuthenticatedToolsRoute,
-  AuthenticatedPortfolioRoute: AuthenticatedPortfolioRoute,
-  AuthenticatedCalculatorsRoute: AuthenticatedCalculatorsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChatIdRoute: AuthenticatedChatIdRoute,
 }
