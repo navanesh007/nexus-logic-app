@@ -189,6 +189,131 @@ function MarketPage() {
           </p>
         </div>
       )}
+
+      {/* Indices */}
+      {extras.data?.indices && extras.data.indices.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-[13px] font-semibold">Indian indices</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {extras.data.indices.slice(0, 3).map((ix) => {
+              const up = ix.changePct >= 0;
+              return (
+                <div key={ix.name} className="market-card p-3">
+                  <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">{ix.name}</p>
+                  <p className="mt-1 text-[14px] font-bold tabular-nums">{ix.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                  <p className={`mt-0.5 text-[11px] font-semibold ${up ? "text-green-400" : "text-red-400"}`}>
+                    {up ? "+" : ""}{ix.changePct.toFixed(2)}%
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Sectors */}
+      {extras.data?.sectors && extras.data.sectors.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-[13px] font-semibold">Sector performance</h2>
+          <div className="space-y-2">
+            {extras.data.sectors.map((s) => {
+              const up = s.changePct >= 0;
+              const width = Math.min(50, Math.abs(s.changePct) * 12);
+              return (
+                <div key={s.name} className="market-card flex items-center gap-3 px-3 py-2.5">
+                  <span className="w-20 text-[12px] font-semibold">{s.name}</span>
+                  <div className="relative flex-1 h-1.5 rounded-full bg-muted/40">
+                    <div
+                      className={`absolute top-0 h-1.5 rounded-full ${up ? "bg-green-400" : "bg-red-400"}`}
+                      style={{ width: `${width}%`, left: up ? "50%" : `${50 - width}%` }}
+                    />
+                    <div className="absolute left-1/2 top-[-2px] h-[10px] w-px bg-white/20" />
+                  </div>
+                  <span className={`w-14 text-right text-[11px] font-semibold ${up ? "text-green-400" : "text-red-400"}`}>
+                    {up ? "+" : ""}{s.changePct.toFixed(2)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Top gainers / losers */}
+      {extras.data && (extras.data.topGainers.length > 0 || extras.data.topLosers.length > 0) && (
+        <section className="mt-6 grid grid-cols-2 gap-3">
+          {(["topGainers", "topLosers"] as const).map((key) => {
+            const list = extras.data![key];
+            const isGain = key === "topGainers";
+            return (
+              <div key={key} className="market-card p-3">
+                <p className={`mb-2 text-[11px] font-semibold ${isGain ? "text-green-400" : "text-red-400"}`}>
+                  {isGain ? "Top gainers" : "Top losers"}
+                </p>
+                <div className="space-y-1.5">
+                  {list.slice(0, 5).map((m) => (
+                    <div key={m.symbol} className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold">{m.symbol}</span>
+                      <span className={isGain ? "text-green-400" : "text-red-400"}>
+                        {isGain ? "+" : ""}{m.changePct.toFixed(2)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {/* Technical indicators */}
+      {extras.data?.indicators && (
+        <section className="mt-6 market-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-[13px] font-semibold">
+              <Activity className="h-3.5 w-3.5 text-violet" /> Technicals · {extras.data.indicators.symbol}
+            </h2>
+            <div className="flex gap-1">
+              {(["1D", "1W", "1M", "1Y"] as Range[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRange(r)}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    range === r ? "gradient-brand text-white" : "glass text-muted-foreground"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+          {extras.data.chart.length > 0 && (
+            <Sparkline data={extras.data.chart} width={320} height={60} color={extras.data.indicators.macd.hist >= 0 ? "up" : "down"} />
+          )}
+          <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+            <Tech label="RSI (14)" value={extras.data.indicators.rsi14.toFixed(1)} />
+            <Tech label="EMA 20" value={extras.data.indicators.ema20.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+            <Tech label="SMA 50" value={extras.data.indicators.sma50.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+            <Tech label="MACD" value={`${extras.data.indicators.macd.value.toFixed(2)} / ${extras.data.indicators.macd.signal.toFixed(2)}`} />
+            <Tech label="Bollinger U" value={extras.data.indicators.bollinger.upper.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+            <Tech label="Bollinger L" value={extras.data.indicators.bollinger.lower.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+          </div>
+          <div className="mt-3 rounded-xl glass p-3">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">AI signal</p>
+            <p className="text-[14px] font-bold">{extras.data.indicators.signal}</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">{extras.data.indicators.summary}</p>
+          </div>
+        </section>
+      )}
     </main>
+  );
+}
+
+function Tech({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg glass px-2.5 py-1.5">
+      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[12px] font-semibold tabular-nums">{value}</p>
+    </div>
   );
 }
