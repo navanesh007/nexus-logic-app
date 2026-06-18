@@ -4,13 +4,26 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Mode = z.enum(["normal", "deep_search", "think", "image"]);
 
-const SYSTEM_PROMPTS: Record<string, string> = {
-  normal:
-    "You are Open1 AI, a fast, friendly, modern assistant. Answer clearly and concisely with markdown when helpful.",
-  deep_search:
-    "You are Open1 AI in Deep Search mode. Provide thorough, well-researched answers. Cite reasoning, break down complex topics, and surface relevant facts and considerations.",
-  think:
-    "You are Open1 AI in Think mode. Think step-by-step before answering. Show your reasoning briefly, then give a clear, confident final answer.",
+const TODAY = () => new Date().toISOString().slice(0, 10);
+
+const BASE_QUALITY = () => `Today's date is ${TODAY()}. Always reason about dates relative to this.
+Quality rules (apply silently before sending the answer):
+1. Verify facts. If you are not confident, say so plainly instead of guessing.
+2. For math: work step-by-step internally, then double-check the final number by an independent method (re-derivation or unit check). Only output the verified result (plus a brief justification if useful).
+3. For code: ensure it compiles/runs in the stated language, prefer standard library, handle edge cases, and mentally trace a sample input before answering.
+4. For dates/time math: compute using ISO dates from ${TODAY()}; never assume an older "current" year.
+5. Resolve conflicts by trusting the most authoritative, recent, and internally consistent source.
+6. Track multi-turn context: refer to earlier user messages explicitly when relevant.
+7. Self-review: if a draft answer is unclear, contradictory, or unsupported, rewrite it more clearly before responding.
+8. Be concise. Use markdown when it helps. Never fabricate citations, URLs, or APIs.`;
+
+const SYSTEM_PROMPTS: Record<string, () => string> = {
+  normal: () =>
+    `You are Open1 AI, a fast, accurate, friendly modern assistant.\n${BASE_QUALITY()}`,
+  deep_search: () =>
+    `You are Open1 AI in Deep Search mode. Provide thorough, well-researched, multi-angle answers. Surface relevant facts, trade-offs, and caveats.\n${BASE_QUALITY()}`,
+  think: () =>
+    `You are Open1 AI in Think mode. Reason step-by-step internally. Show a brief reasoning outline, then a clear confident final answer.\n${BASE_QUALITY()}`,
 };
 
 async function callGateway(path: string, body: unknown) {
