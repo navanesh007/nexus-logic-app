@@ -19,18 +19,20 @@ async function callGateway(path: string, body: unknown) {
   const res = await fetch(`https://ai.gateway.lovable.dev/v1/${path}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${key}`,
+      "Lovable-API-Key": key,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
     const text = await res.text();
+    console.error("[ai.gateway] error", res.status, text.slice(0, 500));
     if (res.status === 429) throw new Error("Rate limit reached. Please try again shortly.");
     if (res.status === 402) throw new Error("AI credits exhausted. Please upgrade your workspace.");
     throw new Error(`AI gateway error (${res.status}): ${text.slice(0, 200)}`);
   }
-  return res.json();
+  const json = await res.json();
+  return json;
 }
 
 export const sendChat = createServerFn({ method: "POST" })
