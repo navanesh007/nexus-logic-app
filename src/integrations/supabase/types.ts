@@ -103,6 +103,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_memory: {
+        Row: {
+          memory: string
+          message_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          memory?: string
+          message_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          memory?: string
+          message_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
