@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { RefreshCw, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { getMarket } from "@/lib/insights.functions";
+import { RefreshCw, AlertCircle, TrendingUp, TrendingDown, Minus, Activity } from "lucide-react";
+import { getMarket, getMarketExtras } from "@/lib/insights.functions";
 import { Sparkline } from "@/components/Sparkline";
 
 type Kind = "nifty50" | "banknifty" | "crypto";
+type Range = "1D" | "1W" | "1M" | "1Y";
 
 const TABS: { id: Kind; label: string }[] = [
   { id: "nifty50", label: "Nifty 50" },
