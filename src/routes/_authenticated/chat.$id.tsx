@@ -164,39 +164,122 @@ function ChatPage() {
     e.preventDefault();
     if (sending) return;
     const hasImage = !!attachedImage;
-    const prompt =
-      input.trim() || (hasImage ? "What's in this image?" : "");
+    const prompt = input.trim() || (hasImage ? "What's in this image?" : "");
     if (!prompt) return;
     const imageToSend = attachedImage;
     setInput("");
     setAttachedImage(null);
     setSending(true);
-    const optimistic: Message = {
-      id: `tmp-${Date.now()}`,
+    const optimisticUser: Message = {
+      id: `tmp-u-${Date.now()}`,
       role: "user",
       content: prompt,
       image_url: imageToSend,
       created_at: new Date().toISOString(),
     };
-    setMessages((m) => [...m, optimistic]);
+    const streamingId = `streaming-${Date.now()}`;
+    const optimisticAssistant: Message = {
+      id: streamingId,
+      role: "assistant",
+      content: "",
+      image_url: null,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((m) => [...m, optimisticUser, optimisticAssistant]);
+
     try {
-      await send({
-        data: {
-          chatId: id,
-          mode,
-          prompt,
-          ...(imageToSend ? { imageDataUrl: imageToSend } : {}),
-        },
-      });
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("id, role, content, image_url, created_at")
-        .eq("chat_id", id)
-        .order("created_at", { ascending: true });
-      setMessages((msgs ?? []) as Message[]);
+      if (mode === "image") {
+        await send({
+          data: {
+            chatId: id,
+            mode,
+            prompt,
+            ...(imageToSend ? { imageDataUrl: imageToSend } : {}),
+          },
+        });
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("id, role, content, image_url, created_at")
+          .eq("chat_id", id)
+          .order("created_at", { ascending: true });
+        setMessages((msgs ?? []) as Message[]);
+      } else {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) throw new Error("Not signed in.");
+        const res = await fetch("/api/chat-stream", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            chatId: id,
+            mode,
+            prompt,
+            ...(imageToSend ? { imageDataUrl: imageToSend } : {}),
+          }),
+        });
+        if (!res.ok || !res.body) {
+          const text = await res.text().catch(() => "");
+          throw new Error(text || `Stream failed (${res.status})`);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let acc = "";
+        let savedId: string | null = null;
+        let refined = false;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split("\n\n");
+          buf = parts.pop() ?? "";
+          for (const part of parts) {
+            const line = part.split("\n").find((l) => l.startsWith("data:"));
+            if (!line) continue;
+            try {
+              const evt = JSON.parse(line.slice(5).trim());
+              if (evt.type === "token") {
+                acc += evt.text;
+                setMessages((m) =>
+                  m.map((x) => (x.id === streamingId ? { ...x, content: acc } : x)),
+                );
+              } else if (evt.type === "saved") {
+                savedId = evt.id ?? null;
+                acc = evt.content ?? acc;
+                setMessages((m) =>
+                  m.map((x) =>
+                    x.id === streamingId
+                      ? { ...x, id: savedId ?? streamingId, content: acc }
+                      : x,
+                  ),
+                );
+              } else if (evt.type === "refined") {
+                refined = true;
+                acc = evt.content;
+                const targetId = savedId ?? streamingId;
+                setMessages((m) =>
+                  m.map((x) => (x.id === targetId ? { ...x, content: acc } : x)),
+                );
+                toast.success("Answer refined", { duration: 1500 });
+              } else if (evt.type === "error") {
+                throw new Error(evt.message || "Stream error");
+              }
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
+        void refined;
+      }
     } catch (err) {
       toast.error((err as Error).message || "Something went wrong.");
-      setMessages((m) => m.filter((x) => x.id !== optimistic.id));
+      setMessages((m) =>
+        m.filter((x) => x.id !== optimisticUser.id && x.id !== streamingId),
+      );
     } finally {
       setSending(false);
     }
