@@ -153,15 +153,9 @@ export const getUserMemory = createServerFn({ method: "GET" })
   });
 
 /** Re-summarize durable facts about the user. Called fire-and-forget. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function distillUserMemory(
-  supabase: {
-    from: (t: string) => {
-      upsert: (
-        v: Record<string, unknown>,
-        o?: { onConflict?: string },
-      ) => Promise<unknown>;
-    };
-  },
+  supabase: any,
   userId: string,
   existingMemory: string,
   recentTurns: Array<{ role: string; content: string }>,
