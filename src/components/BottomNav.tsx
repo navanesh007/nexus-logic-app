@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Home, Newspaper, LineChart, User } from "lucide-react";
+import { Home, Newspaper, LineChart, User, MapPin } from "lucide-react";
 
 const items: Array<{ to: string; label: string; Icon: typeof Home; exact?: boolean }> = [
   { to: "/", label: "Home", Icon: Home, exact: true },
   { to: "/news", label: "News", Icon: Newspaper },
+  { to: "/india-news", label: "India", Icon: MapPin },
   { to: "/market", label: "Market", Icon: LineChart },
   { to: "/profile", label: "Profile", Icon: User },
 ];
