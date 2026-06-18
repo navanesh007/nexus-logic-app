@@ -299,3 +299,91 @@ function BANK_LABEL() {
 function CYPTO_LABEL() {
   return "major cryptocurrencies: " + CRYPTO_UNIVERSE.map((s) => s.symbol).join(", ");
 }
+
+/* ---------------- MARKET EXTRAS: indices, sectors, indicators ---------------- */
+
+export const getMarketExtras = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      symbol: z.string().min(1).max(20).optional().default("NIFTY"),
+      range: z.enum(["1D", "1W", "1M", "1Y"]).optional().default("1M"),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const prompt = `Provide a current-feeling Indian market snapshot.
+Return ONLY valid JSON, no prose, no code fences:
+{
+  "indices": [
+    { "name": "Nifty 50", "value": 0, "changePct": 0, "spark": [12 numbers] },
+    { "name": "Bank Nifty", "value": 0, "changePct": 0, "spark": [12 numbers] },
+    { "name": "Sensex", "value": 0, "changePct": 0, "spark": [12 numbers] }
+  ],
+  "sectors": [
+    { "name": "Banking", "changePct": 0 },
+    { "name": "IT", "changePct": 0 },
+    { "name": "FMCG", "changePct": 0 },
+    { "name": "Pharma", "changePct": 0 },
+    { "name": "Auto", "changePct": 0 }
+  ],
+  "topGainers": [ { "symbol": "...", "name": "...", "changePct": 0 } ],
+  "topLosers":  [ { "symbol": "...", "name": "...", "changePct": 0 } ],
+  "indicators": {
+    "symbol": "${data.symbol}",
+    "range": "${data.range}",
+    "rsi14": 0,
+    "macd": { "value": 0, "signal": 0, "hist": 0 },
+    "ema20": 0,
+    "sma50": 0,
+    "bollinger": { "upper": 0, "middle": 0, "lower": 0 },
+    "signal": "Buy | Hold | Sell",
+    "summary": "1-2 sentence plain-English read of the technicals."
+  },
+  "chart": [24 numbers approximating the ${data.range} price path for ${data.symbol}]
+}
+- topGainers / topLosers: 5 items each, from NIFTY 50 universe.
+- RSI 0-100, sectors changePct -3..+3, realistic Indian numbers.`;
+    const result = await callGateway("chat/completions", {
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: "You are an Indian market analyst. Output strict JSON only. Illustrative AI estimates, not live data." },
+        { role: "user", content: prompt },
+      ],
+    });
+    const text: string = result?.choices?.[0]?.message?.content ?? "";
+    const parsed = extractJson(text) as Record<string, unknown>;
+
+    const Index = z.object({
+      name: z.string(),
+      value: z.number(),
+      changePct: z.number(),
+      spark: z.array(z.number()).optional().default([]),
+    });
+    const Sector = z.object({ name: z.string(), changePct: z.number() });
+    const Mover = z.object({ symbol: z.string(), name: z.string(), changePct: z.number() });
+    const Indicators = z.object({
+      symbol: z.string(),
+      range: z.string(),
+      rsi14: z.number(),
+      macd: z.object({ value: z.number(), signal: z.number(), hist: z.number() }),
+      ema20: z.number(),
+      sma50: z.number(),
+      bollinger: z.object({ upper: z.number(), middle: z.number(), lower: z.number() }),
+      signal: z.string(),
+      summary: z.string(),
+    });
+
+    return {
+      indices: z.array(Index).parse(parsed.indices ?? []),
+      sectors: z.array(Sector).parse(parsed.sectors ?? []),
+      topGainers: z.array(Mover).parse(parsed.topGainers ?? []),
+      topLosers: z.array(Mover).parse(parsed.topLosers ?? []),
+      indicators: Indicators.parse(parsed.indicators ?? {
+        symbol: data.symbol, range: data.range, rsi14: 50,
+        macd: { value: 0, signal: 0, hist: 0 }, ema20: 0, sma50: 0,
+        bollinger: { upper: 0, middle: 0, lower: 0 }, signal: "Hold", summary: "",
+      }),
+      chart: z.array(z.number()).parse(parsed.chart ?? []),
+      generatedAt: new Date().toISOString(),
+    };
+  });
