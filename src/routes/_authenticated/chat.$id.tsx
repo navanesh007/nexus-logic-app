@@ -247,6 +247,17 @@ function ChatPage() {
               {m.content && (
                 <div className="whitespace-pre-wrap text-sm leading-relaxed">{m.content}</div>
               )}
+              {m.role === "assistant" && m.content && (
+                <button
+                  type="button"
+                  onClick={() => toggleSpeak(m.id, m.content)}
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+                  aria-label={speakingId === m.id ? "Stop speaking" : "Read aloud"}
+                >
+                  {speakingId === m.id ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                  {speakingId === m.id ? "Stop" : "Listen"}
+                </button>
+              )}
             </div>
           </div>
         ))}
