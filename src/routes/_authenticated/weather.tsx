@@ -137,10 +137,56 @@ function WeatherPage() {
   const [air, setAir] = useState<AirData | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [showResults, setShowResults] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
 
   const country = LOCATIONS[countryIdx];
   const state = country.states[stateIdx] ?? country.states[0];
   const city = state.cities[cityIdx] ?? state.cities[0];
+
+  const searchResults = useMemo<FlatCity[]>(() => searchIndia(query, 10), [query]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  function selectIndiaCity(match: FlatCity) {
+    // Find India + state + city by exact coords (handles aliases too).
+    const indiaIdx = LOCATIONS.findIndex((c) => c.name === "India");
+    if (indiaIdx < 0) return;
+    const states = LOCATIONS[indiaIdx].states;
+    const sIdx = states.findIndex((s) => s.name === match.state);
+    if (sIdx < 0) return;
+    const cIdx = states[sIdx].cities.findIndex(
+      (c) => Math.abs(c.lat - match.lat) < 0.001 && Math.abs(c.lon - match.lon) < 0.001,
+    );
+    setCountryIdx(indiaIdx);
+    setStateIdx(sIdx);
+    setCityIdx(cIdx >= 0 ? cIdx : 0);
+    setQuery("");
+    setShowResults(false);
+  }
+
+  function handleSearchSubmit() {
+    const q = query.trim();
+    if (!q) return;
+    if (searchResults.length > 0) {
+      selectIndiaCity(searchResults[0]);
+      return;
+    }
+    // Fallback: pick nearest city to a rough centroid (no match found → use India centroid).
+    const fallback = nearestIndianCity(22.0, 79.0);
+    selectIndiaCity(fallback);
+  }
+
 
   useEffect(() => {
     let cancelled = false;
