@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Cloud, CloudRain, Sun, CloudSnow, CloudLightning, CloudDrizzle, CloudFog,
   Wind, Droplets, Eye, Gauge, Sunrise, Sunset, Moon, MapPin, Loader2, Layers,
+  Search as SearchIcon, X,
 } from "lucide-react";
+import { INDIA_STATES, searchIndia, nearestIndianCity, type FlatCity } from "@/lib/india-locations";
 
 export const Route = createFileRoute("/_authenticated/weather")({
   component: WeatherPage,
