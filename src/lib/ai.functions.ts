@@ -263,17 +263,44 @@ export const sendChat = createServerFn({ method: "POST" })
     let assistantImage: string | null = null;
 
     if (data.mode === "image") {
-      const result = await callGateway("images/generations", {
-        model: "google/gemini-2.5-flash-image",
-        prompt: data.prompt,
-      });
-      const first = result?.data?.[0];
-      const url: string | undefined = first?.url
-        ? first.url
-        : first?.b64_json
-          ? `data:image/png;base64,${first.b64_json}`
-          : undefined;
-      if (!url) throw new Error("No image returned");
+      const models = [
+        "google/gemini-3.1-flash-image-preview",
+        "google/gemini-2.5-flash-image",
+        "openai/gpt-image-1-mini",
+      ];
+      let url: string | undefined;
+      let lastErr: unknown = null;
+      for (const model of models) {
+        for (let attempt = 0; attempt < 2 && !url; attempt++) {
+          try {
+            const isOpenAI = model.startsWith("openai/");
+            const body = isOpenAI
+              ? { model, prompt: data.prompt, size: "1024x1024", quality: "low", n: 1 }
+              : {
+                  model,
+                  messages: [{ role: "user", content: data.prompt }],
+                  modalities: ["image", "text"],
+                };
+            const result = await callGateway("images/generations", body);
+            const first = result?.data?.[0];
+            url = first?.url
+              ? first.url
+              : first?.b64_json
+                ? `data:image/png;base64,${first.b64_json}`
+                : undefined;
+            if (!url) throw new Error("Empty image response");
+          } catch (err) {
+            lastErr = err;
+            await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+          }
+        }
+        if (url) break;
+      }
+      if (!url) {
+        throw new Error(
+          `Image generation failed after retries. ${(lastErr as Error)?.message ?? "Try a different prompt or try again in a moment."}`,
+        );
+      }
       assistantImage = url;
       assistantContent = `Generated image for: "${data.prompt}"`;
     } else {
