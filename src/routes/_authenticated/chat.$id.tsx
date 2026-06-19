@@ -8,6 +8,7 @@ import {
   Sparkles,
   Search,
   Brain,
+  Bot,
   Image as ImageIcon,
   Paperclip,
   X,
