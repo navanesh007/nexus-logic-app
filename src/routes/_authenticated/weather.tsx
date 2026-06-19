@@ -19,32 +19,10 @@ type Country = { name: string; states: State[] };
 const LOCATIONS: Country[] = [
   {
     name: "India",
-    states: [
-      { name: "Tamil Nadu", cities: [
-        { name: "Salem", lat: 11.6643, lon: 78.146 },
-        { name: "Chennai", lat: 13.0827, lon: 80.2707 },
-        { name: "Coimbatore", lat: 11.0168, lon: 76.9558 },
-        { name: "Madurai", lat: 9.9252, lon: 78.1198 },
-      ]},
-      { name: "Karnataka", cities: [
-        { name: "Bengaluru", lat: 12.9716, lon: 77.5946 },
-        { name: "Mysuru", lat: 12.2958, lon: 76.6394 },
-        { name: "Mangaluru", lat: 12.9141, lon: 74.856 },
-      ]},
-      { name: "Kerala", cities: [
-        { name: "Kochi", lat: 9.9312, lon: 76.2673 },
-        { name: "Thiruvananthapuram", lat: 8.5241, lon: 76.9366 },
-        { name: "Kozhikode", lat: 11.2588, lon: 75.7804 },
-      ]},
-      { name: "Maharashtra", cities: [
-        { name: "Mumbai", lat: 19.076, lon: 72.8777 },
-        { name: "Pune", lat: 18.5204, lon: 73.8567 },
-        { name: "Nagpur", lat: 21.1458, lon: 79.0882 },
-      ]},
-      { name: "Delhi", cities: [{ name: "New Delhi", lat: 28.6139, lon: 77.209 }] },
-      { name: "West Bengal", cities: [{ name: "Kolkata", lat: 22.5726, lon: 88.3639 }] },
-      { name: "Telangana", cities: [{ name: "Hyderabad", lat: 17.385, lon: 78.4867 }] },
-    ],
+    states: INDIA_STATES.map((s) => ({
+      name: s.name,
+      cities: s.cities.map((c) => ({ name: c.name, lat: c.lat, lon: c.lon })),
+    })),
   },
   {
     name: "United States",
