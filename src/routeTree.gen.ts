@@ -95,6 +95,11 @@ const AuthenticatedCalculatorsRoute =
     path: '/calculators',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWeatherRoute = AuthenticatedWeatherRouteImport.update({
+  id: '/weather',
+  path: '/weather',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
