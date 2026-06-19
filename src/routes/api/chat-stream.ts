@@ -64,7 +64,10 @@ export const Route = createFileRoute("/api/chat-stream")({
 
         const chatId = body.chatId;
         const prompt = (body.prompt ?? "").trim();
-        const mode = body.mode === "deep_search" || body.mode === "think" ? body.mode : "normal";
+        const mode =
+          body.mode === "deep_search" || body.mode === "think" || body.mode === "agent"
+            ? body.mode
+            : "normal";
         const imageDataUrl = body.imageDataUrl;
         if (!chatId || !prompt) return new Response("Bad request", { status: 400 });
         if (imageDataUrl && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(imageDataUrl)) {
