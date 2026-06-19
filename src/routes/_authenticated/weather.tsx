@@ -253,6 +253,46 @@ function WeatherPage() {
         </div>
       </header>
 
+      {/* India search (city / state / district) */}
+      <section ref={searchBoxRef} className="relative mb-3">
+        <div className="flex items-center gap-2 rounded-2xl glass px-3 py-2.5">
+          <SearchIcon className="h-4 w-4 text-violet-300" />
+          <input
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
+            onFocus={() => setShowResults(true)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(); }}
+            placeholder="Search India — city, state or district…"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          {query && (
+            <button onClick={() => { setQuery(""); setShowResults(false); }} className="text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {showResults && query.trim() && (
+          <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto scroll-smooth rounded-2xl glass-strong p-1 shadow-2xl shadow-violet-900/40 animate-fade-up">
+            {searchResults.length === 0 && (
+              <div className="px-3 py-3 text-xs text-muted-foreground">
+                No exact match. Press Enter to load nearest available city.
+              </div>
+            )}
+            {searchResults.map((r, i) => (
+              <button
+                key={`${r.state}-${r.city}-${i}`}
+                onClick={() => selectIndiaCity(r)}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-white/10"
+              >
+                <MapPin className="h-3.5 w-3.5 text-violet-300 shrink-0" />
+                <span className="font-medium">{r.city}</span>
+                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">{r.state}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Location selectors */}
       <section className="mb-5 grid grid-cols-3 gap-2">
         <Select label="Country" value={countryIdx} onChange={(v) => { setCountryIdx(v); setStateIdx(0); setCityIdx(0); }}
@@ -262,6 +302,7 @@ function WeatherPage() {
         <Select label="City" value={cityIdx} onChange={setCityIdx}
           options={state.cities.map((c, i) => ({ value: i, label: c.name }))} />
       </section>
+
 
       {loading && (
         <div className="rounded-3xl glass p-10 text-center">
