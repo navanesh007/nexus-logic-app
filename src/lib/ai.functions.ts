@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const Mode = z.enum(["normal", "deep_search", "think", "image"]);
+const Mode = z.enum(["normal", "deep_search", "think", "image", "agent"]);
 
 export function nowContext() {
   const d = new Date();
