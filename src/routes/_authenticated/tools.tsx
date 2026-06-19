@@ -161,12 +161,54 @@ function ToolsPage() {
 
   return (
     <main className="mx-auto max-w-md px-5 pt-10 pb-28 animate-fade-up">
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-violet" /> AI Tools
-        </h1>
-        <p className="text-[12px] text-muted-foreground">Writing, coding, and image studio — all in one place.</p>
+      <div className="mb-5 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-violet" /> AI Tools
+          </h1>
+          <p className="text-[12px] text-muted-foreground">Writing, coding, and image studio — all in one place.</p>
+        </div>
+        <button
+          onClick={() => setShowHistory((s) => !s)}
+          className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
+          aria-label="History"
+        >
+          <History className="h-3.5 w-3.5" /> {history.length}
+        </button>
       </div>
+
+      {showHistory && (
+        <div className="mb-5 rounded-2xl glass-strong p-3 animate-fade-up">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Recent</p>
+            {history.length > 0 && (
+              <button onClick={clearHistory} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                <Trash2 className="h-3 w-3" /> Clear
+              </button>
+            )}
+          </div>
+          {history.length === 0 ? (
+            <p className="py-3 text-center text-[12px] text-muted-foreground">No history yet.</p>
+          ) : (
+            <ul className="max-h-72 space-y-1.5 overflow-auto">
+              {history.map((h) => (
+                <li key={h.id}>
+                  <button
+                    onClick={() => openHistoryItem(h)}
+                    className="w-full rounded-xl glass px-3 py-2 text-left hover:bg-white/5"
+                  >
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {TOOLS.find((t) => t.id === h.tool)?.label ?? h.tool}
+                    </p>
+                    <p className="line-clamp-2 text-[12px]">{h.prompt}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
 
       {!active && (
         <div className="space-y-5">
