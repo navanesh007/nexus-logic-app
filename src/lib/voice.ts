@@ -141,6 +141,26 @@ export function stopServerSpeech() {
   activeCtx = null;
 }
 
+export async function pauseServerSpeech() {
+  try {
+    await activeCtx?.suspend();
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function resumeServerSpeech() {
+  try {
+    await activeCtx?.resume();
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isServerSpeechActive() {
+  return !!activeCtx;
+}
+
 export async function speakWithServer(text: string, onEnd?: () => void): Promise<void> {
   stopServerSpeech();
   const res = await fetch("/api/voice-tts", {
