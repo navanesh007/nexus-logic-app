@@ -335,15 +335,23 @@ Return ONLY valid JSON, no prose, no code fences:
     "rsi14": 0,
     "macd": { "value": 0, "signal": 0, "hist": 0 },
     "ema20": 0,
+    "ema50": 0,
+    "ema100": 0,
+    "ema200": 0,
     "sma50": 0,
     "bollinger": { "upper": 0, "middle": 0, "lower": 0 },
+    "support": 0,
+    "resistance": 0,
+    "trend": { "daily": "Up | Down | Sideways", "weekly": "Up | Down | Sideways", "monthly": "Up | Down | Sideways" },
     "signal": "Buy | Hold | Sell",
+    "confidence": "High | Medium | Low",
     "summary": "1-2 sentence plain-English read of the technicals."
   },
   "chart": [24 numbers approximating the ${data.range} price path for ${data.symbol}]
 }
 - topGainers / topLosers: 5 items each, from NIFTY 50 universe.
-- RSI 0-100, sectors changePct -3..+3, realistic Indian numbers.`;
+- RSI 0-100, sectors changePct -3..+3, realistic Indian numbers.
+- EMAs/SMAs/support/resistance must be near the latest price; longer EMAs lag more.`;
     const result = await callGateway("chat/completions", {
       model: "google/gemini-3-flash-preview",
       messages: [
