@@ -10,7 +10,7 @@ import {
 
 type ReqBody = {
   chatId?: string;
-  mode?: "normal" | "deep_search" | "think";
+  mode?: "normal" | "deep_search" | "think" | "agent";
   prompt?: string;
   imageDataUrl?: string;
 };
