@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Cloud, CloudRain, Sun, CloudSnow, CloudLightning, CloudDrizzle, CloudFog,
   Wind, Droplets, Eye, Gauge, Sunrise, Sunset, Moon, MapPin, Loader2, Layers,
+  Search as SearchIcon, X,
 } from "lucide-react";
+import { INDIA_STATES, searchIndia, nearestIndianCity, type FlatCity } from "@/lib/india-locations";
 
 export const Route = createFileRoute("/_authenticated/weather")({
   component: WeatherPage,
@@ -17,32 +19,10 @@ type Country = { name: string; states: State[] };
 const LOCATIONS: Country[] = [
   {
     name: "India",
-    states: [
-      { name: "Tamil Nadu", cities: [
-        { name: "Salem", lat: 11.6643, lon: 78.146 },
-        { name: "Chennai", lat: 13.0827, lon: 80.2707 },
-        { name: "Coimbatore", lat: 11.0168, lon: 76.9558 },
-        { name: "Madurai", lat: 9.9252, lon: 78.1198 },
-      ]},
-      { name: "Karnataka", cities: [
-        { name: "Bengaluru", lat: 12.9716, lon: 77.5946 },
-        { name: "Mysuru", lat: 12.2958, lon: 76.6394 },
-        { name: "Mangaluru", lat: 12.9141, lon: 74.856 },
-      ]},
-      { name: "Kerala", cities: [
-        { name: "Kochi", lat: 9.9312, lon: 76.2673 },
-        { name: "Thiruvananthapuram", lat: 8.5241, lon: 76.9366 },
-        { name: "Kozhikode", lat: 11.2588, lon: 75.7804 },
-      ]},
-      { name: "Maharashtra", cities: [
-        { name: "Mumbai", lat: 19.076, lon: 72.8777 },
-        { name: "Pune", lat: 18.5204, lon: 73.8567 },
-        { name: "Nagpur", lat: 21.1458, lon: 79.0882 },
-      ]},
-      { name: "Delhi", cities: [{ name: "New Delhi", lat: 28.6139, lon: 77.209 }] },
-      { name: "West Bengal", cities: [{ name: "Kolkata", lat: 22.5726, lon: 88.3639 }] },
-      { name: "Telangana", cities: [{ name: "Hyderabad", lat: 17.385, lon: 78.4867 }] },
-    ],
+    states: INDIA_STATES.map((s) => ({
+      name: s.name,
+      cities: s.cities.map((c) => ({ name: c.name, lat: c.lat, lon: c.lon })),
+    })),
   },
   {
     name: "United States",
@@ -157,10 +137,56 @@ function WeatherPage() {
   const [air, setAir] = useState<AirData | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [showResults, setShowResults] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
 
   const country = LOCATIONS[countryIdx];
   const state = country.states[stateIdx] ?? country.states[0];
   const city = state.cities[cityIdx] ?? state.cities[0];
+
+  const searchResults = useMemo<FlatCity[]>(() => searchIndia(query, 10), [query]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  function selectIndiaCity(match: FlatCity) {
+    // Find India + state + city by exact coords (handles aliases too).
+    const indiaIdx = LOCATIONS.findIndex((c) => c.name === "India");
+    if (indiaIdx < 0) return;
+    const states = LOCATIONS[indiaIdx].states;
+    const sIdx = states.findIndex((s) => s.name === match.state);
+    if (sIdx < 0) return;
+    const cIdx = states[sIdx].cities.findIndex(
+      (c) => Math.abs(c.lat - match.lat) < 0.001 && Math.abs(c.lon - match.lon) < 0.001,
+    );
+    setCountryIdx(indiaIdx);
+    setStateIdx(sIdx);
+    setCityIdx(cIdx >= 0 ? cIdx : 0);
+    setQuery("");
+    setShowResults(false);
+  }
+
+  function handleSearchSubmit() {
+    const q = query.trim();
+    if (!q) return;
+    if (searchResults.length > 0) {
+      selectIndiaCity(searchResults[0]);
+      return;
+    }
+    // Fallback: pick nearest city to a rough centroid (no match found → use India centroid).
+    const fallback = nearestIndianCity(22.0, 79.0);
+    selectIndiaCity(fallback);
+  }
+
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +253,46 @@ function WeatherPage() {
         </div>
       </header>
 
+      {/* India search (city / state / district) */}
+      <section ref={searchBoxRef} className="relative mb-3">
+        <div className="flex items-center gap-2 rounded-2xl glass px-3 py-2.5">
+          <SearchIcon className="h-4 w-4 text-violet-300" />
+          <input
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
+            onFocus={() => setShowResults(true)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(); }}
+            placeholder="Search India — city, state or district…"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          {query && (
+            <button onClick={() => { setQuery(""); setShowResults(false); }} className="text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {showResults && query.trim() && (
+          <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto scroll-smooth rounded-2xl glass-strong p-1 shadow-2xl shadow-violet-900/40 animate-fade-up">
+            {searchResults.length === 0 && (
+              <div className="px-3 py-3 text-xs text-muted-foreground">
+                No exact match. Press Enter to load nearest available city.
+              </div>
+            )}
+            {searchResults.map((r, i) => (
+              <button
+                key={`${r.state}-${r.city}-${i}`}
+                onClick={() => selectIndiaCity(r)}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-white/10"
+              >
+                <MapPin className="h-3.5 w-3.5 text-violet-300 shrink-0" />
+                <span className="font-medium">{r.city}</span>
+                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">{r.state}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Location selectors */}
       <section className="mb-5 grid grid-cols-3 gap-2">
         <Select label="Country" value={countryIdx} onChange={(v) => { setCountryIdx(v); setStateIdx(0); setCityIdx(0); }}
@@ -236,6 +302,7 @@ function WeatherPage() {
         <Select label="City" value={cityIdx} onChange={setCityIdx}
           options={state.cities.map((c, i) => ({ value: i, label: c.name }))} />
       </section>
+
 
       {loading && (
         <div className="rounded-3xl glass p-10 text-center">
