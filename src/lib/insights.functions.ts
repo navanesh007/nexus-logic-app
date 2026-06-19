@@ -376,9 +376,19 @@ Return ONLY valid JSON, no prose, no code fences:
       rsi14: z.number(),
       macd: z.object({ value: z.number(), signal: z.number(), hist: z.number() }),
       ema20: z.number(),
+      ema50: z.number().optional().default(0),
+      ema100: z.number().optional().default(0),
+      ema200: z.number().optional().default(0),
       sma50: z.number(),
       bollinger: z.object({ upper: z.number(), middle: z.number(), lower: z.number() }),
+      support: z.number().optional().default(0),
+      resistance: z.number().optional().default(0),
+      trend: z
+        .object({ daily: z.string(), weekly: z.string(), monthly: z.string() })
+        .optional()
+        .default({ daily: "Sideways", weekly: "Sideways", monthly: "Sideways" }),
       signal: z.string(),
+      confidence: z.string().optional().default("Medium"),
       summary: z.string(),
     });
 
@@ -389,8 +399,10 @@ Return ONLY valid JSON, no prose, no code fences:
       topLosers: z.array(Mover).parse(parsed.topLosers ?? []),
       indicators: Indicators.parse(parsed.indicators ?? {
         symbol: data.symbol, range: data.range, rsi14: 50,
-        macd: { value: 0, signal: 0, hist: 0 }, ema20: 0, sma50: 0,
-        bollinger: { upper: 0, middle: 0, lower: 0 }, signal: "Hold", summary: "",
+        macd: { value: 0, signal: 0, hist: 0 }, ema20: 0, ema50: 0, ema100: 0, ema200: 0, sma50: 0,
+        bollinger: { upper: 0, middle: 0, lower: 0 }, support: 0, resistance: 0,
+        trend: { daily: "Sideways", weekly: "Sideways", monthly: "Sideways" },
+        signal: "Hold", confidence: "Medium", summary: "",
       }),
       chart: z.array(z.number()).parse(parsed.chart ?? []),
       generatedAt: new Date().toISOString(),
