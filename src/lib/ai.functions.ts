@@ -99,6 +99,9 @@ HARD RULES:
 - Multi-step reasoning is mandatory for any non-trivial query.
 - Output uses headings (## Plan, ## Research, ## Execute, ## Review, ## Answer, ## Confidence) so progress is legible.
 ${BASE_QUALITY(m)}`,
+};
+
+
 
 export function buildSystemPrompt(mode: string, memory?: string): string {
   return (SYSTEM_PROMPTS[mode] ?? SYSTEM_PROMPTS.normal)(memory);
