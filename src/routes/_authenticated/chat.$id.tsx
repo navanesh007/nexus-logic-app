@@ -8,6 +8,7 @@ import {
   Sparkles,
   Search,
   Brain,
+  Bot,
   Image as ImageIcon,
   Paperclip,
   X,
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/chat/$id")({
   component: ChatPage,
 });
 
-type Mode = "normal" | "deep_search" | "think" | "image";
+type Mode = "normal" | "deep_search" | "think" | "agent" | "image";
 type Message = {
   id: string;
   role: string;
@@ -37,6 +38,7 @@ const MODES: { id: Mode; label: string; Icon: typeof Sparkles }[] = [
   { id: "normal", label: "Normal", Icon: Sparkles },
   { id: "deep_search", label: "Deep Search", Icon: Search },
   { id: "think", label: "Think", Icon: Brain },
+  { id: "agent", label: "Agent", Icon: Bot },
   { id: "image", label: "Image", Icon: ImageIcon },
 ];
 

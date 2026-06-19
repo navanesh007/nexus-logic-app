@@ -115,10 +115,11 @@ const INDIA_CATEGORIES = [
   "Trending",
   "Politics",
   "Religion",
-  "Business",
-  "Technology",
   "Sports",
   "Entertainment",
+  "Technology",
+  "Business",
+  "World",
   "Education",
   "Health",
 ] as const;

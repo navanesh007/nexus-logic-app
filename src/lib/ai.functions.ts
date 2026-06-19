@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const Mode = z.enum(["normal", "deep_search", "think", "image"]);
+const Mode = z.enum(["normal", "deep_search", "think", "image", "agent"]);
 
 export function nowContext() {
   const d = new Date();
@@ -74,14 +74,34 @@ For every answer:
 - Use headings and bullet points for clarity. Cover trending angles, latest information, and fact-check claims against general knowledge.
 ${BASE_QUALITY(m)}`,
   think: (m) =>
-    `You are Open1 AI in Think (Agent) mode. For non-trivial questions, work through this loop internally before answering:
+    `You are Open1 AI in Think (Reasoning) mode. For non-trivial questions, work through this loop internally before answering:
 PLAN: break the problem into 2-5 concrete sub-steps.
 EXECUTE: solve each sub-step with the math/code/fact rules below.
 VERIFY: independently re-check each result (re-derive, plug back in, run mental dry-run, sanity check).
 SELF-CORRECT: if any check fails, fix the step and re-verify.
 ANSWER: open with a short reasoning outline (3-6 bullets), then give the confident, justified final answer.
 ${BASE_QUALITY(m)}`,
+  agent: (m) =>
+    `You are Open1 AI in AGENT mode — a smart autonomous research and reasoning agent rivaling ChatGPT Agent, Perplexity, and Manus AI.
+
+OPERATE IN THIS LOOP (visible to user):
+1. **Understand** — restate the user's true goal in one sentence and list explicit/implicit constraints.
+2. **Plan** — produce a numbered plan of 3-7 concrete steps you will take.
+3. **Research** — for each fact-bearing step, recall multi-source knowledge (definitions, current state, recent developments, contrasting views, edge cases). Flag freshness limits when relevant.
+4. **Execute** — work through steps in order. Show calculations, code, or logical derivations explicitly. Verify each numeric result with a second method; trace each code path mentally.
+5. **Self-Review** — explicitly critique the draft: any unsupported claim, math slip, contradiction, hallucinated citation, missed constraint? Fix before delivering.
+6. **Confidence** — rate confidence (High / Medium / Low) and call out what could change the answer.
+7. **Final Answer** — clear, structured, actionable; sources named (not fabricated URLs).
+
+HARD RULES:
+- Never fabricate citations, URLs, package names, statistics, or quotes. Prefer "I'm not certain — here is what would confirm it" over a confident guess.
+- Use the long-term user memory above as durable context.
+- Multi-step reasoning is mandatory for any non-trivial query.
+- Output uses headings (## Plan, ## Research, ## Execute, ## Review, ## Answer, ## Confidence) so progress is legible.
+${BASE_QUALITY(m)}`,
 };
+
+
 
 export function buildSystemPrompt(mode: string, memory?: string): string {
   return (SYSTEM_PROMPTS[mode] ?? SYSTEM_PROMPTS.normal)(memory);
@@ -243,17 +263,44 @@ export const sendChat = createServerFn({ method: "POST" })
     let assistantImage: string | null = null;
 
     if (data.mode === "image") {
-      const result = await callGateway("images/generations", {
-        model: "google/gemini-2.5-flash-image",
-        prompt: data.prompt,
-      });
-      const first = result?.data?.[0];
-      const url: string | undefined = first?.url
-        ? first.url
-        : first?.b64_json
-          ? `data:image/png;base64,${first.b64_json}`
-          : undefined;
-      if (!url) throw new Error("No image returned");
+      const models = [
+        "google/gemini-3.1-flash-image-preview",
+        "google/gemini-2.5-flash-image",
+        "openai/gpt-image-1-mini",
+      ];
+      let url: string | undefined;
+      let lastErr: unknown = null;
+      for (const model of models) {
+        for (let attempt = 0; attempt < 2 && !url; attempt++) {
+          try {
+            const isOpenAI = model.startsWith("openai/");
+            const body = isOpenAI
+              ? { model, prompt: data.prompt, size: "1024x1024", quality: "low", n: 1 }
+              : {
+                  model,
+                  messages: [{ role: "user", content: data.prompt }],
+                  modalities: ["image", "text"],
+                };
+            const result = await callGateway("images/generations", body);
+            const first = result?.data?.[0];
+            url = first?.url
+              ? first.url
+              : first?.b64_json
+                ? `data:image/png;base64,${first.b64_json}`
+                : undefined;
+            if (!url) throw new Error("Empty image response");
+          } catch (err) {
+            lastErr = err;
+            await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+          }
+        }
+        if (url) break;
+      }
+      if (!url) {
+        throw new Error(
+          `Image generation failed after retries. ${(lastErr as Error)?.message ?? "Try a different prompt or try again in a moment."}`,
+        );
+      }
       assistantImage = url;
       assistantContent = `Generated image for: "${data.prompt}"`;
     } else {
