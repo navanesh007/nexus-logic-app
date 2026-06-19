@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Mail, FileText, BriefcaseBusiness, ScrollText,
   Code2, BookOpen, Bug, ImagePlus, ImageIcon,
-  Loader2, Sparkles, Paperclip, X, Copy, Check,
+  Languages, AlignLeft, SpellCheck,
+  Loader2, Sparkles, Paperclip, X, Copy, Check, History, Trash2,
 } from "lucide-react";
 import { runTool, type ToolIdT } from "@/lib/tools.functions";
 import { toast } from "sonner";
@@ -26,6 +27,9 @@ const TOOLS: {
   { id: "blog", label: "Blog Writer", desc: "Full Markdown articles.", Icon: FileText, placeholder: "Topic, audience, tone. e.g. 'How AI is changing personal finance, for beginners, friendly tone.'", group: "Writing" },
   { id: "resume", label: "Resume Builder", desc: "ATS-friendly resume.", Icon: BriefcaseBusiness, placeholder: "Paste your raw experience + target role.", group: "Writing" },
   { id: "cover_letter", label: "Cover Letter", desc: "Tailored cover letter.", Icon: ScrollText, placeholder: "Role + company + your top 3 wins.", group: "Writing" },
+  { id: "summarizer", label: "Summarizer", desc: "Tighten any long text.", Icon: AlignLeft, placeholder: "Paste the text to summarize.", group: "Writing" },
+  { id: "grammar", label: "Grammar Fixer", desc: "Polish grammar & clarity.", Icon: SpellCheck, placeholder: "Paste the text to proofread.", group: "Writing" },
+  { id: "translator", label: "Translator", desc: "Translate to any language.", Icon: Languages, placeholder: "e.g. 'Translate to Spanish: Good morning, how are you?'", group: "Writing" },
   { id: "code_gen", label: "Code Generator", desc: "Runnable code from a spec.", Icon: Code2, placeholder: "e.g. 'Python function that returns Fibonacci(n) iteratively with memoization.'", group: "Coding" },
   { id: "code_explain", label: "Code Explainer", desc: "Understand any snippet.", Icon: BookOpen, placeholder: "Paste the code to explain.", group: "Coding" },
   { id: "code_debug", label: "Code Debugger", desc: "Find & fix bugs.", Icon: Bug, placeholder: "Paste the code + the error you're seeing.", group: "Coding" },
