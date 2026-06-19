@@ -48,6 +48,34 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+type HistoryItem = {
+  id: string;
+  tool: ToolIdT;
+  prompt: string;
+  kind: "text" | "image";
+  value: string;
+  at: number;
+};
+const HISTORY_KEY = "open1.tools.history.v1";
+const HISTORY_MAX = 30;
+
+function loadHistory(): HistoryItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as HistoryItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+function saveHistory(items: HistoryItem[]) {
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_MAX)));
+  } catch {
+    /* ignore */
+  }
+}
+
 function ToolsPage() {
   const run = useServerFn(runTool);
   const [active, setActive] = useState<ToolIdT | null>(null);
@@ -56,7 +84,13 @@ function ToolsPage() {
   const [result, setResult] = useState<{ kind: "text" | "image"; value: string } | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   const activeTool = TOOLS.find((t) => t.id === active);
 
@@ -83,13 +117,30 @@ function ToolsPage() {
       const out = await run({
         data: { tool: active, prompt: p, ...(image ? { imageDataUrl: image } : {}) },
       });
-      if (out.kind === "image") setResult({ kind: "image", value: out.url });
-      else setResult({ kind: "text", value: out.text });
+      const r = out.kind === "image"
+        ? { kind: "image" as const, value: out.url }
+        : { kind: "text" as const, value: out.text };
+      setResult(r);
+      const item: HistoryItem = { id: crypto.randomUUID(), tool: active, prompt: p, ...r, at: Date.now() };
+      const next = [item, ...history].slice(0, HISTORY_MAX);
+      setHistory(next);
+      saveHistory(next);
     } catch (err) {
       toast.error((err as Error).message || "Tool failed.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    saveHistory([]);
+  }
+  function openHistoryItem(it: HistoryItem) {
+    setActive(it.tool);
+    setPrompt(it.prompt);
+    setResult({ kind: it.kind, value: it.value });
+    setShowHistory(false);
   }
 
   function reset() {
