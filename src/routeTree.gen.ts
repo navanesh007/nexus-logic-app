@@ -23,7 +23,6 @@ import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/n
 import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
 import { Route as AuthenticatedIndiaNewsRouteImport } from './routes/_authenticated/india-news'
 import { Route as AuthenticatedCalculatorsRouteImport } from './routes/_authenticated/calculators'
-import { Route as AuthenticatedWeatherRouteImport } from './routes/_authenticated/weather'
 import { Route as AuthenticatedChatIdRouteImport } from './routes/_authenticated/chat.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -96,11 +95,6 @@ const AuthenticatedCalculatorsRoute =
     path: '/calculators',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedWeatherRoute = AuthenticatedWeatherRouteImport.update({
-  id: '/weather',
-  path: '/weather',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
@@ -315,13 +309,6 @@ declare module '@tanstack/react-router' {
       path: '/calculators'
       fullPath: '/calculators'
       preLoaderRoute: typeof AuthenticatedCalculatorsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/weather': {
-      id: '/_authenticated/weather'
-      path: '/weather'
-      fullPath: '/weather'
-      preLoaderRoute: typeof AuthenticatedWeatherRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/chat/$id': {
