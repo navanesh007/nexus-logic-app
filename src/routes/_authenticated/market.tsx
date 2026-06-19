@@ -324,6 +324,10 @@ function MarketPage() {
   );
 }
 
+function fmt(n: number): string {
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 function Tech({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg glass px-2.5 py-1.5">
