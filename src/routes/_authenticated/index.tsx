@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Search, Plus, MessageSquare, Loader2, Sparkles, Briefcase, Calculator } from "lucide-react";
+import { Search, Plus, MessageSquare, Loader2, Sparkles, Briefcase, Calculator, Cloud } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
@@ -82,11 +82,12 @@ function HomePage() {
         New chat
       </button>
 
-      <div className="mb-6 grid grid-cols-3 gap-2">
+      <div className="mb-6 grid grid-cols-4 gap-2">
         {[
           { to: "/tools", label: "AI Tools", Icon: Sparkles },
+          { to: "/weather", label: "Weather", Icon: Cloud },
           { to: "/portfolio", label: "Portfolio", Icon: Briefcase },
-          { to: "/calculators", label: "Calculators", Icon: Calculator },
+          { to: "/calculators", label: "Calc", Icon: Calculator },
         ].map(({ to, label, Icon }) => (
           <Link
             key={to}

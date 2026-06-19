@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as ApiVoiceTtsRouteImport } from './routes/api/voice-tts'
 import { Route as ApiVoiceSttRouteImport } from './routes/api/voice-stt'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat-stream'
+import { Route as AuthenticatedWeatherRouteImport } from './routes/_authenticated/weather'
 import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
@@ -52,6 +53,11 @@ const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
   id: '/api/chat-stream',
   path: '/api/chat-stream',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedWeatherRoute = AuthenticatedWeatherRouteImport.update({
+  id: '/weather',
+  path: '/weather',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
   id: '/tools',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/portfolio': typeof AuthenticatedPortfolioRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/tools': typeof AuthenticatedToolsRoute
+  '/weather': typeof AuthenticatedWeatherRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/voice-stt': typeof ApiVoiceSttRoute
   '/api/voice-tts': typeof ApiVoiceTtsRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/portfolio': typeof AuthenticatedPortfolioRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/tools': typeof AuthenticatedToolsRoute
+  '/weather': typeof AuthenticatedWeatherRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/voice-stt': typeof ApiVoiceSttRoute
   '/api/voice-tts': typeof ApiVoiceTtsRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_authenticated/portfolio': typeof AuthenticatedPortfolioRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/tools': typeof AuthenticatedToolsRoute
+  '/_authenticated/weather': typeof AuthenticatedWeatherRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/voice-stt': typeof ApiVoiceSttRoute
   '/api/voice-tts': typeof ApiVoiceTtsRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/profile'
     | '/tools'
+    | '/weather'
     | '/api/chat-stream'
     | '/api/voice-stt'
     | '/api/voice-tts'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/profile'
     | '/tools'
+    | '/weather'
     | '/api/chat-stream'
     | '/api/voice-stt'
     | '/api/voice-tts'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portfolio'
     | '/_authenticated/profile'
     | '/_authenticated/tools'
+    | '/_authenticated/weather'
     | '/api/chat-stream'
     | '/api/voice-stt'
     | '/api/voice-tts'
@@ -242,6 +254,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat-stream'
       preLoaderRoute: typeof ApiChatStreamRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/weather': {
+      id: '/_authenticated/weather'
+      path: '/weather'
+      fullPath: '/weather'
+      preLoaderRoute: typeof AuthenticatedWeatherRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tools': {
       id: '/_authenticated/tools'
@@ -310,6 +329,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
+  AuthenticatedWeatherRoute: typeof AuthenticatedWeatherRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChatIdRoute: typeof AuthenticatedChatIdRoute
 }
@@ -322,6 +342,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortfolioRoute: AuthenticatedPortfolioRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedToolsRoute: AuthenticatedToolsRoute,
+  AuthenticatedWeatherRoute: AuthenticatedWeatherRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChatIdRoute: AuthenticatedChatIdRoute,
 }
