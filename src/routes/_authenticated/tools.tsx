@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Mail, FileText, BriefcaseBusiness, ScrollText,
   Code2, BookOpen, Bug, ImagePlus, ImageIcon,
-  Loader2, Sparkles, Paperclip, X, Copy, Check,
+  Languages, AlignLeft, SpellCheck,
+  Loader2, Sparkles, Paperclip, X, Copy, Check, History, Trash2,
 } from "lucide-react";
 import { runTool, type ToolIdT } from "@/lib/tools.functions";
 import { toast } from "sonner";
@@ -26,6 +27,9 @@ const TOOLS: {
   { id: "blog", label: "Blog Writer", desc: "Full Markdown articles.", Icon: FileText, placeholder: "Topic, audience, tone. e.g. 'How AI is changing personal finance, for beginners, friendly tone.'", group: "Writing" },
   { id: "resume", label: "Resume Builder", desc: "ATS-friendly resume.", Icon: BriefcaseBusiness, placeholder: "Paste your raw experience + target role.", group: "Writing" },
   { id: "cover_letter", label: "Cover Letter", desc: "Tailored cover letter.", Icon: ScrollText, placeholder: "Role + company + your top 3 wins.", group: "Writing" },
+  { id: "summarizer", label: "Summarizer", desc: "Tighten any long text.", Icon: AlignLeft, placeholder: "Paste the text to summarize.", group: "Writing" },
+  { id: "grammar", label: "Grammar Fixer", desc: "Polish grammar & clarity.", Icon: SpellCheck, placeholder: "Paste the text to proofread.", group: "Writing" },
+  { id: "translator", label: "Translator", desc: "Translate to any language.", Icon: Languages, placeholder: "e.g. 'Translate to Spanish: Good morning, how are you?'", group: "Writing" },
   { id: "code_gen", label: "Code Generator", desc: "Runnable code from a spec.", Icon: Code2, placeholder: "e.g. 'Python function that returns Fibonacci(n) iteratively with memoization.'", group: "Coding" },
   { id: "code_explain", label: "Code Explainer", desc: "Understand any snippet.", Icon: BookOpen, placeholder: "Paste the code to explain.", group: "Coding" },
   { id: "code_debug", label: "Code Debugger", desc: "Find & fix bugs.", Icon: Bug, placeholder: "Paste the code + the error you're seeing.", group: "Coding" },
@@ -44,6 +48,34 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+type HistoryItem = {
+  id: string;
+  tool: ToolIdT;
+  prompt: string;
+  kind: "text" | "image";
+  value: string;
+  at: number;
+};
+const HISTORY_KEY = "open1.tools.history.v1";
+const HISTORY_MAX = 30;
+
+function loadHistory(): HistoryItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as HistoryItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+function saveHistory(items: HistoryItem[]) {
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_MAX)));
+  } catch {
+    /* ignore */
+  }
+}
+
 function ToolsPage() {
   const run = useServerFn(runTool);
   const [active, setActive] = useState<ToolIdT | null>(null);
@@ -52,7 +84,13 @@ function ToolsPage() {
   const [result, setResult] = useState<{ kind: "text" | "image"; value: string } | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   const activeTool = TOOLS.find((t) => t.id === active);
 
@@ -79,13 +117,30 @@ function ToolsPage() {
       const out = await run({
         data: { tool: active, prompt: p, ...(image ? { imageDataUrl: image } : {}) },
       });
-      if (out.kind === "image") setResult({ kind: "image", value: out.url });
-      else setResult({ kind: "text", value: out.text });
+      const r = out.kind === "image"
+        ? { kind: "image" as const, value: out.url }
+        : { kind: "text" as const, value: out.text };
+      setResult(r);
+      const item: HistoryItem = { id: crypto.randomUUID(), tool: active, prompt: p, ...r, at: Date.now() };
+      const next = [item, ...history].slice(0, HISTORY_MAX);
+      setHistory(next);
+      saveHistory(next);
     } catch (err) {
       toast.error((err as Error).message || "Tool failed.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    saveHistory([]);
+  }
+  function openHistoryItem(it: HistoryItem) {
+    setActive(it.tool);
+    setPrompt(it.prompt);
+    setResult({ kind: it.kind, value: it.value });
+    setShowHistory(false);
   }
 
   function reset() {
@@ -106,12 +161,54 @@ function ToolsPage() {
 
   return (
     <main className="mx-auto max-w-md px-5 pt-10 pb-28 animate-fade-up">
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-violet" /> AI Tools
-        </h1>
-        <p className="text-[12px] text-muted-foreground">Writing, coding, and image studio — all in one place.</p>
+      <div className="mb-5 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-violet" /> AI Tools
+          </h1>
+          <p className="text-[12px] text-muted-foreground">Writing, coding, and image studio — all in one place.</p>
+        </div>
+        <button
+          onClick={() => setShowHistory((s) => !s)}
+          className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
+          aria-label="History"
+        >
+          <History className="h-3.5 w-3.5" /> {history.length}
+        </button>
       </div>
+
+      {showHistory && (
+        <div className="mb-5 rounded-2xl glass-strong p-3 animate-fade-up">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Recent</p>
+            {history.length > 0 && (
+              <button onClick={clearHistory} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                <Trash2 className="h-3 w-3" /> Clear
+              </button>
+            )}
+          </div>
+          {history.length === 0 ? (
+            <p className="py-3 text-center text-[12px] text-muted-foreground">No history yet.</p>
+          ) : (
+            <ul className="max-h-72 space-y-1.5 overflow-auto">
+              {history.map((h) => (
+                <li key={h.id}>
+                  <button
+                    onClick={() => openHistoryItem(h)}
+                    className="w-full rounded-xl glass px-3 py-2 text-left hover:bg-white/5"
+                  >
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {TOOLS.find((t) => t.id === h.tool)?.label ?? h.tool}
+                    </p>
+                    <p className="line-clamp-2 text-[12px]">{h.prompt}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
 
       {!active && (
         <div className="space-y-5">

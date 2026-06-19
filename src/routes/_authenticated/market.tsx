@@ -292,14 +292,29 @@ function MarketPage() {
           )}
           <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
             <Tech label="RSI (14)" value={extras.data.indicators.rsi14.toFixed(1)} />
-            <Tech label="EMA 20" value={extras.data.indicators.ema20.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
-            <Tech label="SMA 50" value={extras.data.indicators.sma50.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+            <Tech label="EMA 20" value={fmt(extras.data.indicators.ema20)} />
+            <Tech label="EMA 50" value={fmt(extras.data.indicators.ema50)} />
+            <Tech label="EMA 100" value={fmt(extras.data.indicators.ema100)} />
+            <Tech label="EMA 200" value={fmt(extras.data.indicators.ema200)} />
+            <Tech label="SMA 50" value={fmt(extras.data.indicators.sma50)} />
             <Tech label="MACD" value={`${extras.data.indicators.macd.value.toFixed(2)} / ${extras.data.indicators.macd.signal.toFixed(2)}`} />
-            <Tech label="Bollinger U" value={extras.data.indicators.bollinger.upper.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
-            <Tech label="Bollinger L" value={extras.data.indicators.bollinger.lower.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+            <Tech label="Bollinger U" value={fmt(extras.data.indicators.bollinger.upper)} />
+            <Tech label="Bollinger L" value={fmt(extras.data.indicators.bollinger.lower)} />
+            <Tech label="Support" value={fmt(extras.data.indicators.support)} />
+            <Tech label="Resistance" value={fmt(extras.data.indicators.resistance)} />
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+            <Tech label="Daily" value={extras.data.indicators.trend.daily} />
+            <Tech label="Weekly" value={extras.data.indicators.trend.weekly} />
+            <Tech label="Monthly" value={extras.data.indicators.trend.monthly} />
           </div>
           <div className="mt-3 rounded-xl glass p-3">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">AI signal</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">AI signal</p>
+              <span className="rounded-full glass px-2 py-0.5 text-[10px] font-semibold">
+                {extras.data.indicators.confidence} confidence
+              </span>
+            </div>
             <p className="text-[14px] font-bold">{extras.data.indicators.signal}</p>
             <p className="mt-1 text-[12px] text-muted-foreground">{extras.data.indicators.summary}</p>
           </div>
@@ -307,6 +322,10 @@ function MarketPage() {
       )}
     </main>
   );
+}
+
+function fmt(n: number): string {
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function Tech({ label, value }: { label: string; value: string }) {

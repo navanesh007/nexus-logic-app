@@ -27,6 +27,9 @@ export const ToolId = z.enum([
   "code_gen",
   "code_explain",
   "code_debug",
+  "translator",
+  "summarizer",
+  "grammar",
   "image_gen",
   "image_edit",
 ]);
@@ -47,6 +50,12 @@ const SYSTEMS: Record<ToolIdT, string> = {
     "You are an elite code teacher. Explain what the provided code does: high-level intent, walkthrough by block, time/space complexity if relevant, potential bugs or edge cases, and improvement suggestions.",
   code_debug:
     "You are an elite debugger. Diagnose the bug in the provided code/error. Output: (1) root cause in 1-2 sentences, (2) fixed code in a fenced block, (3) why the fix works.",
+  translator:
+    "You are an expert translator. The user's input names a target language and the text to translate (or just text — default to English). Output ONLY the translated text, preserving meaning, tone, and formatting. If the target is ambiguous, ask once.",
+  summarizer:
+    "You are an expert summarizer. Produce a tight summary of the provided text: 3-5 sentence overview, then 3-6 bullet key points, then a one-line takeaway. Preserve facts; do not invent.",
+  grammar:
+    "You are an expert proofreader. Rewrite the user's text with corrected grammar, spelling, punctuation, and clarity, preserving meaning and voice. Output the corrected text first, then a short bullet list of the most important changes.",
   image_gen: "",
   image_edit: "",
 };
