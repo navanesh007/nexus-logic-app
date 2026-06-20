@@ -326,6 +326,25 @@ function ToolsPage() {
             </div>
           )}
 
+          {active === "image_gen" && (
+            <div>
+              <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">Style</p>
+              <div className="flex flex-wrap gap-1.5">
+                {IMG_STYLES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setStyle(s.id)}
+                    className={`rounded-full px-3 py-1.5 text-[12px] transition ${
+                      style === s.id ? "gradient-green text-black font-semibold" : "glass text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -335,29 +354,71 @@ function ToolsPage() {
           />
 
           <button
-            onClick={go}
+            onClick={() => go()}
             disabled={busy}
             className="flex w-full items-center justify-center gap-2 rounded-2xl gradient-brand px-4 py-3 font-semibold text-white shadow-lg shadow-violet/30 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {busy ? "Working…" : "Run"}
+            {busy ? PROGRESS_STEPS[progress] : "Run"}
           </button>
+
+          {busy && (
+            <div className="rounded-2xl glass p-4">
+              <div className="flex items-center gap-3">
+                <div className="relative h-10 w-10">
+                  <div className="absolute inset-0 rounded-full gradient-green opacity-30 animate-pulse-glow" />
+                  <Loader2 className="absolute inset-0 m-auto h-5 w-5 animate-spin text-green-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[12px] font-medium">{PROGRESS_STEPS[progress]}</p>
+                  <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full gradient-green animate-pulse" style={{ width: `${(progress + 1) * 25}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {result && (
             <div className="rounded-2xl glass p-4">
               {result.kind === "image" ? (
-                <img src={result.value} alt="Result" className="w-full rounded-xl" />
+                <>
+                  <img src={result.value} alt="Result" className="w-full rounded-xl" />
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={downloadImage}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full glass px-3 py-2 text-[12px] hover:text-foreground"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download
+                    </button>
+                    <button
+                      onClick={() => go()}
+                      disabled={busy}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full gradient-green px-3 py-2 text-[12px] font-semibold text-black disabled:opacity-50"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                    </button>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Result</p>
-                    <button
-                      onClick={copyResult}
-                      className="inline-flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[11px] hover:text-foreground"
-                    >
-                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      {copied ? "Copied" : "Copy"}
-                    </button>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => go()}
+                        className="inline-flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[11px] hover:text-foreground"
+                      >
+                        <RefreshCw className="h-3 w-3" /> Retry
+                      </button>
+                      <button
+                        onClick={copyResult}
+                        className="inline-flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[11px] hover:text-foreground"
+                      >
+                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
                   </div>
                   <pre className="whitespace-pre-wrap break-words text-[13px] leading-relaxed">{result.value}</pre>
                 </>
