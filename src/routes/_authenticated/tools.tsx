@@ -76,14 +76,27 @@ function saveHistory(items: HistoryItem[]) {
   }
 }
 
+const IMG_STYLES = [
+  { id: "none", label: "Default" },
+  { id: "realistic", label: "Realistic" },
+  { id: "3d", label: "3D Prototype" },
+  { id: "anime", label: "Anime" },
+  { id: "illustration", label: "Illustration" },
+  { id: "cinematic", label: "Cinematic" },
+] as const;
+
+const PROGRESS_STEPS = ["Composing prompt…", "Generating pixels…", "Polishing details…", "Almost there…"];
+
 function ToolsPage() {
   const run = useServerFn(runTool);
   const [active, setActive] = useState<ToolIdT | null>(null);
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ kind: "text" | "image"; value: string } | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [style, setStyle] = useState<string>("none");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -91,6 +104,13 @@ function ToolsPage() {
   useEffect(() => {
     setHistory(loadHistory());
   }, []);
+
+  useEffect(() => {
+    if (!busy) { setProgress(0); return; }
+    setProgress(0);
+    const t = setInterval(() => setProgress((p) => (p + 1) % PROGRESS_STEPS.length), 1500);
+    return () => clearInterval(t);
+  }, [busy]);
 
   const activeTool = TOOLS.find((t) => t.id === active);
 
@@ -106,16 +126,28 @@ function ToolsPage() {
     }
   }
 
-  async function go() {
+  function friendlyErr(msg: string): string {
+    if (/rate/i.test(msg)) return "Slow down a moment — rate limit hit. Try again shortly.";
+    if (/credit/i.test(msg)) return "AI credits exhausted. Add credits to keep generating.";
+    if (/no image/i.test(msg)) return "No image came back. Try again with a more detailed prompt.";
+    return msg || "Generation failed. Please try again.";
+  }
+
+  async function go(promptOverride?: string) {
     if (!active || busy) return;
-    const p = prompt.trim();
+    const p = (promptOverride ?? prompt).trim();
     if (!p) return toast.error("Add a prompt first.");
     if (active === "image_edit" && !image) return toast.error("Attach an image to edit.");
     setBusy(true);
     setResult(null);
     try {
       const out = await run({
-        data: { tool: active, prompt: p, ...(image ? { imageDataUrl: image } : {}) },
+        data: {
+          tool: active,
+          prompt: p,
+          ...(active === "image_gen" && style !== "none" ? { style } : {}),
+          ...(image ? { imageDataUrl: image } : {}),
+        },
       });
       const r = out.kind === "image"
         ? { kind: "image" as const, value: out.url }
@@ -126,9 +158,27 @@ function ToolsPage() {
       setHistory(next);
       saveHistory(next);
     } catch (err) {
-      toast.error((err as Error).message || "Tool failed.");
+      toast.error(friendlyErr((err as Error).message));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function downloadImage() {
+    if (!result || result.kind !== "image") return;
+    try {
+      const res = await fetch(result.value);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `open1-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Couldn't download. Long-press the image to save.");
     }
   }
 
