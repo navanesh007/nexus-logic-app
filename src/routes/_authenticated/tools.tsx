@@ -5,7 +5,7 @@ import {
   Mail, FileText, BriefcaseBusiness, ScrollText,
   Code2, BookOpen, Bug, ImagePlus, ImageIcon,
   Languages, AlignLeft, SpellCheck,
-  Loader2, Sparkles, Paperclip, X, Copy, Check, History, Trash2,
+  Loader2, Sparkles, Paperclip, X, Copy, Check, History, Trash2, Download, RefreshCw,
 } from "lucide-react";
 import { runTool, type ToolIdT } from "@/lib/tools.functions";
 import { toast } from "sonner";
