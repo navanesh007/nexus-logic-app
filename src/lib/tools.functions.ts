@@ -60,12 +60,48 @@ const SYSTEMS: Record<ToolIdT, string> = {
   image_edit: "",
 };
 
+const STYLE_HINTS: Record<string, string> = {
+  realistic: "ultra-realistic photography, natural lighting, sharp focus, photorealistic, 8k, detailed textures",
+  "3d": "stylized 3D render, octane render, soft studio lighting, subsurface scattering, depth of field, prototype mockup",
+  anime: "anime illustration, cel-shaded, vibrant colors, Studio Ghibli inspired, detailed line art",
+  illustration: "digital illustration, painterly, rich colors, soft shadows, concept art, artstation trending",
+  cinematic: "cinematic shot, dramatic lighting, film grain, anamorphic lens, color graded",
+  none: "",
+};
+
+async function generateImageWithRetry(prompt: string, attempts = 3): Promise<string> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const result = await callGateway("images/generations", {
+        model: "google/gemini-3.1-flash-image-preview",
+        prompt,
+      });
+      const first = result?.data?.[0];
+      const url: string | undefined = first?.url
+        ? first.url
+        : first?.b64_json
+          ? `data:image/png;base64,${first.b64_json}`
+          : undefined;
+      if (!url) throw new Error("No image returned");
+      return url;
+    } catch (err) {
+      lastErr = err;
+      const msg = (err as Error).message;
+      if (msg.includes("Rate limit") || msg.includes("credits")) throw err;
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Image generation failed");
+}
+
 export const runTool = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       tool: ToolId,
       prompt: z.string().min(1).max(8000),
+      style: z.string().max(40).optional(),
       imageDataUrl: z
         .string()
         .regex(/^data:image\/(png|jpe?g|webp|gif);base64,/i)
@@ -75,17 +111,9 @@ export const runTool = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     if (data.tool === "image_gen") {
-      const result = await callGateway("images/generations", {
-        model: "google/gemini-2.5-flash-image",
-        prompt: data.prompt,
-      });
-      const first = result?.data?.[0];
-      const url: string | undefined = first?.url
-        ? first.url
-        : first?.b64_json
-          ? `data:image/png;base64,${first.b64_json}`
-          : undefined;
-      if (!url) throw new Error("No image returned");
+      const hint = data.style ? STYLE_HINTS[data.style] ?? "" : "";
+      const finalPrompt = hint ? `${data.prompt}. Style: ${hint}` : data.prompt;
+      const url = await generateImageWithRetry(finalPrompt);
       return { kind: "image" as const, url };
     }
 
