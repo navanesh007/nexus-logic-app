@@ -80,6 +80,37 @@ function AuthPage() {
   const pw = useMemo(() => scorePassword(password), [password]);
   const newPw = useMemo(() => scorePassword(newPassword), [newPassword]);
 
+  // 60s resend cooldown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resendIn]);
+
+  // 5-minute OTP expiration timer
+  useEffect(() => {
+    if (!otpExpiresAt) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((otpExpiresAt - Date.now()) / 1000));
+      setOtpCountdown(remaining);
+      if (remaining <= 0) setOtpExpiresAt(null);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [otpExpiresAt]);
+
+  function startOtpTimers() {
+    setResendIn(60);
+    setOtpExpiresAt(Date.now() + 5 * 60 * 1000);
+  }
+
+  function fmtClock(s: number) {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, "0")}`;
+  }
+
   function persistRemember() {
     if (typeof window === "undefined") return;
     if (remember) window.localStorage.setItem(REMEMBER_KEY, email);
