@@ -545,9 +545,26 @@ function AuthPage() {
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
               </button>
-              <button type="button" onClick={() => setStep("forgot")} className="block w-full text-center text-[12px] text-muted-foreground hover:text-foreground">
-                ← Back
-              </button>
+              {otpCountdown > 0 ? (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Code expires in <span className="font-medium text-foreground">{fmtClock(otpCountdown)}</span>
+                </p>
+              ) : otpExpiresAt !== null ? (
+                <p className="text-center text-[11px] text-red-400">Code expired — please resend.</p>
+              ) : null}
+              <div className="flex items-center justify-between text-[12px]">
+                <button type="button" onClick={() => setStep("forgot")} className="text-muted-foreground hover:text-foreground">
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={resendResetOtp}
+                  disabled={resendIn > 0}
+                  className="text-green-accent hover:underline disabled:no-underline disabled:text-muted-foreground"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </button>
+              </div>
             </form>
           )}
 
