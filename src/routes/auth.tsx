@@ -60,6 +60,9 @@ function AuthPage() {
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
+  const [otpCountdown, setOtpCountdown] = useState(0);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
