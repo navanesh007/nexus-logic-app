@@ -170,6 +170,8 @@ function AuthPage() {
         navigate({ to: "/" });
       } else {
         toast.success("We sent a 6-digit code to your email.");
+        startOtpTimers();
+        setOtp("");
         setStep("otp");
       }
     } catch (err) {
@@ -181,6 +183,9 @@ function AuthPage() {
 
   async function verifySignupOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (otpExpiresAt && Date.now() > otpExpiresAt) {
+      return toast.error("Code expired — tap Resend to get a new one.");
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "email" });
@@ -195,10 +200,13 @@ function AuthPage() {
   }
 
   async function resendOtp() {
+    if (resendIn > 0) return;
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       if (error) throw error;
-      toast.success("New code sent");
+      startOtpTimers();
+      setOtp("");
+      toast.success("New code sent — check your inbox.");
     } catch (err) {
       toast.error(friendly(err));
     }
@@ -212,7 +220,9 @@ function AuthPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast.success("Check your email for a 6-digit code.");
+      toast.success("Check your email for a 6-digit reset code.");
+      startOtpTimers();
+      setOtp("");
       setStep("forgot-otp");
     } catch (err) {
       toast.error(friendly(err));
@@ -221,10 +231,26 @@ function AuthPage() {
     }
   }
 
+  async function resendResetOtp() {
+    if (resendIn > 0) return;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      startOtpTimers();
+      setOtp("");
+      toast.success("New reset code sent.");
+    } catch (err) {
+      toast.error(friendly(err));
+    }
+  }
+
   async function verifyResetOtp(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    try {
+    if (otpExpiresAt && Date.now() > otpExpiresAt) {
+      return toast.error("Code expired — tap Resend to get a new one.");
+    }
       const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "recovery" });
       if (error) throw error;
       setStep("forgot-new");
