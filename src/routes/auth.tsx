@@ -250,6 +250,7 @@ function AuthPage() {
     e.preventDefault();
     if (otpExpiresAt && Date.now() > otpExpiresAt) {
       return toast.error("Code expired — tap Resend to get a new one.");
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "recovery" });
