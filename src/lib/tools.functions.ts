@@ -69,30 +69,50 @@ const STYLE_HINTS: Record<string, string> = {
   none: "",
 };
 
-async function generateImageWithRetry(prompt: string, attempts = 3): Promise<string> {
+async function tryGeminiImage(prompt: string): Promise<string | null> {
+  const result = await callGateway("chat/completions", {
+    model: "google/gemini-2.5-flash-image",
+    messages: [{ role: "user", content: prompt }],
+    modalities: ["image", "text"],
+  });
+  const msg = result?.choices?.[0]?.message;
+  const url: string | undefined =
+    msg?.images?.[0]?.image_url?.url ||
+    (typeof msg?.content === "string" && msg.content.startsWith("data:image/") ? msg.content : undefined);
+  return url ?? null;
+}
+
+async function tryGptImage(prompt: string): Promise<string | null> {
+  const result = await callGateway("images/generations", {
+    model: "openai/gpt-image-2",
+    prompt,
+    quality: "low",
+    size: "1024x1024",
+    n: 1,
+  });
+  const first = result?.data?.[0];
+  if (first?.url) return first.url;
+  if (first?.b64_json) return `data:image/png;base64,${first.b64_json}`;
+  return null;
+}
+
+async function generateImageWithRetry(prompt: string): Promise<string> {
+  const providers = [tryGeminiImage, tryGptImage];
   let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const result = await callGateway("images/generations", {
-        model: "google/gemini-3.1-flash-image-preview",
-        prompt,
-      });
-      const first = result?.data?.[0];
-      const url: string | undefined = first?.url
-        ? first.url
-        : first?.b64_json
-          ? `data:image/png;base64,${first.b64_json}`
-          : undefined;
-      if (!url) throw new Error("No image returned");
-      return url;
-    } catch (err) {
-      lastErr = err;
-      const msg = (err as Error).message;
-      if (msg.includes("Rate limit") || msg.includes("credits")) throw err;
-      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const provider of providers) {
+      try {
+        const url = await provider(prompt);
+        if (url) return url;
+      } catch (err) {
+        lastErr = err;
+        const msg = (err as Error).message || "";
+        if (msg.includes("Rate limit") || msg.includes("credits")) throw err;
+      }
     }
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
   }
-  throw lastErr instanceof Error ? lastErr : new Error("Image generation failed");
+  throw lastErr instanceof Error ? lastErr : new Error("Image generation failed after retries");
 }
 
 export const runTool = createServerFn({ method: "POST" })

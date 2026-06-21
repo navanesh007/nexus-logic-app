@@ -60,6 +60,9 @@ function AuthPage() {
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
+  const [otpCountdown, setOtpCountdown] = useState(0);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -76,6 +79,37 @@ function AuthPage() {
 
   const pw = useMemo(() => scorePassword(password), [password]);
   const newPw = useMemo(() => scorePassword(newPassword), [newPassword]);
+
+  // 60s resend cooldown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resendIn]);
+
+  // 5-minute OTP expiration timer
+  useEffect(() => {
+    if (!otpExpiresAt) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((otpExpiresAt - Date.now()) / 1000));
+      setOtpCountdown(remaining);
+      if (remaining <= 0) setOtpExpiresAt(null);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [otpExpiresAt]);
+
+  function startOtpTimers() {
+    setResendIn(60);
+    setOtpExpiresAt(Date.now() + 5 * 60 * 1000);
+  }
+
+  function fmtClock(s: number) {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, "0")}`;
+  }
 
   function persistRemember() {
     if (typeof window === "undefined") return;
@@ -136,6 +170,8 @@ function AuthPage() {
         navigate({ to: "/" });
       } else {
         toast.success("We sent a 6-digit code to your email.");
+        startOtpTimers();
+        setOtp("");
         setStep("otp");
       }
     } catch (err) {
@@ -147,6 +183,9 @@ function AuthPage() {
 
   async function verifySignupOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (otpExpiresAt && Date.now() > otpExpiresAt) {
+      return toast.error("Code expired — tap Resend to get a new one.");
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "email" });
@@ -161,10 +200,13 @@ function AuthPage() {
   }
 
   async function resendOtp() {
+    if (resendIn > 0) return;
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       if (error) throw error;
-      toast.success("New code sent");
+      startOtpTimers();
+      setOtp("");
+      toast.success("New code sent — check your inbox.");
     } catch (err) {
       toast.error(friendly(err));
     }
@@ -178,7 +220,9 @@ function AuthPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast.success("Check your email for a 6-digit code.");
+      toast.success("Check your email for a 6-digit reset code.");
+      startOtpTimers();
+      setOtp("");
       setStep("forgot-otp");
     } catch (err) {
       toast.error(friendly(err));
@@ -187,8 +231,26 @@ function AuthPage() {
     }
   }
 
+  async function resendResetOtp() {
+    if (resendIn > 0) return;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      startOtpTimers();
+      setOtp("");
+      toast.success("New reset code sent.");
+    } catch (err) {
+      toast.error(friendly(err));
+    }
+  }
+
   async function verifyResetOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (otpExpiresAt && Date.now() > otpExpiresAt) {
+      return toast.error("Code expired — tap Resend to get a new one.");
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "recovery" });
@@ -413,12 +475,24 @@ function AuthPage() {
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Continue"}
               </button>
+              {otpCountdown > 0 ? (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Code expires in <span className="font-medium text-foreground">{fmtClock(otpCountdown)}</span>
+                </p>
+              ) : otpExpiresAt !== null ? (
+                <p className="text-center text-[11px] text-red-400">Code expired — please resend.</p>
+              ) : null}
               <div className="flex items-center justify-between text-[12px]">
                 <button type="button" onClick={() => setStep("form")} className="text-muted-foreground hover:text-foreground">
                   ← Back
                 </button>
-                <button type="button" onClick={resendOtp} className="text-green-accent hover:underline">
-                  Resend code
+                <button
+                  type="button"
+                  onClick={resendOtp}
+                  disabled={resendIn > 0}
+                  className="text-green-accent hover:underline disabled:no-underline disabled:text-muted-foreground"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
                 </button>
               </div>
             </form>
@@ -471,9 +545,26 @@ function AuthPage() {
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
               </button>
-              <button type="button" onClick={() => setStep("forgot")} className="block w-full text-center text-[12px] text-muted-foreground hover:text-foreground">
-                ← Back
-              </button>
+              {otpCountdown > 0 ? (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Code expires in <span className="font-medium text-foreground">{fmtClock(otpCountdown)}</span>
+                </p>
+              ) : otpExpiresAt !== null ? (
+                <p className="text-center text-[11px] text-red-400">Code expired — please resend.</p>
+              ) : null}
+              <div className="flex items-center justify-between text-[12px]">
+                <button type="button" onClick={() => setStep("forgot")} className="text-muted-foreground hover:text-foreground">
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={resendResetOtp}
+                  disabled={resendIn > 0}
+                  className="text-green-accent hover:underline disabled:no-underline disabled:text-muted-foreground"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </button>
+              </div>
             </form>
           )}
 
