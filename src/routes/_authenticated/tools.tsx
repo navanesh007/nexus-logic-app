@@ -227,13 +227,21 @@ function ToolsPage() {
           </h1>
           <p className="text-[12px] text-muted-foreground">Writing, coding, and image studio — all in one place.</p>
         </div>
-        <button
-          onClick={() => setShowHistory((s) => !s)}
-          className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
-          aria-label="History"
-        >
-          <History className="h-3.5 w-3.5" /> {history.length}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Link
+            to="/models"
+            className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Models
+          </Link>
+          <button
+            onClick={() => setShowHistory((s) => !s)}
+            className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
+            aria-label="History"
+          >
+            <History className="h-3.5 w-3.5" /> {history.length}
+          </button>
+        </div>
       </div>
 
       {showHistory && (
