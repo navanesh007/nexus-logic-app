@@ -165,6 +165,7 @@ function ToolsPage() {
       const next = [item, ...history].slice(0, HISTORY_MAX);
       setHistory(next);
       saveHistory(next);
+      if (active === "image_gen" || active === "image_edit") refreshUsage();
     } catch (err) {
       toast.error(friendlyErr((err as Error).message));
     } finally {
