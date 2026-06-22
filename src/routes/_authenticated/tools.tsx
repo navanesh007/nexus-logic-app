@@ -311,6 +311,19 @@ function ToolsPage() {
             </button>
           </div>
 
+          {(active === "image_gen" || active === "image_edit") && usage && (
+            <div className="rounded-2xl glass-strong px-4 py-2.5 flex items-center justify-between text-[12px]">
+              <span className="text-muted-foreground">Daily credits</span>
+              <span className="font-semibold">
+                <span className={usage[active].remaining === 0 ? "text-red-400" : "text-green-accent"}>
+                  {usage[active].remaining}
+                </span>
+                <span className="text-muted-foreground"> / {usage[active].limit} left</span>
+              </span>
+            </div>
+          )}
+
+
           {activeTool.takesImage && (
             <div>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
