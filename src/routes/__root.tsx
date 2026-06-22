@@ -88,10 +88,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" },
+      { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css" },
     ],
   }),
   shellComponent: RootShell,

@@ -21,6 +21,7 @@ import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
 import { Route as AuthenticatedNewsRouteImport } from './routes/_authenticated/news'
+import { Route as AuthenticatedModelsRouteImport } from './routes/_authenticated/models'
 import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
 import { Route as AuthenticatedIndiaNewsRouteImport } from './routes/_authenticated/india-news'
 import { Route as AuthenticatedCalculatorsRouteImport } from './routes/_authenticated/calculators'
@@ -85,6 +86,11 @@ const AuthenticatedNewsRoute = AuthenticatedNewsRouteImport.update({
   path: '/news',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedModelsRoute = AuthenticatedModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMarketRoute = AuthenticatedMarketRouteImport.update({
   id: '/market',
   path: '/market',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/calculators': typeof AuthenticatedCalculatorsRoute
   '/india-news': typeof AuthenticatedIndiaNewsRoute
   '/market': typeof AuthenticatedMarketRoute
+  '/models': typeof AuthenticatedModelsRoute
   '/news': typeof AuthenticatedNewsRoute
   '/portfolio': typeof AuthenticatedPortfolioRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/calculators': typeof AuthenticatedCalculatorsRoute
   '/india-news': typeof AuthenticatedIndiaNewsRoute
   '/market': typeof AuthenticatedMarketRoute
+  '/models': typeof AuthenticatedModelsRoute
   '/news': typeof AuthenticatedNewsRoute
   '/portfolio': typeof AuthenticatedPortfolioRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/calculators': typeof AuthenticatedCalculatorsRoute
   '/_authenticated/india-news': typeof AuthenticatedIndiaNewsRoute
   '/_authenticated/market': typeof AuthenticatedMarketRoute
+  '/_authenticated/models': typeof AuthenticatedModelsRoute
   '/_authenticated/news': typeof AuthenticatedNewsRoute
   '/_authenticated/portfolio': typeof AuthenticatedPortfolioRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/calculators'
     | '/india-news'
     | '/market'
+    | '/models'
     | '/news'
     | '/portfolio'
     | '/profile'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/calculators'
     | '/india-news'
     | '/market'
+    | '/models'
     | '/news'
     | '/portfolio'
     | '/profile'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/_authenticated/calculators'
     | '/_authenticated/india-news'
     | '/_authenticated/market'
+    | '/_authenticated/models'
     | '/_authenticated/news'
     | '/_authenticated/portfolio'
     | '/_authenticated/profile'
@@ -310,6 +322,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNewsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/models': {
+      id: '/_authenticated/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof AuthenticatedModelsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/market': {
       id: '/_authenticated/market'
       path: '/market'
@@ -345,6 +364,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCalculatorsRoute: typeof AuthenticatedCalculatorsRoute
   AuthenticatedIndiaNewsRoute: typeof AuthenticatedIndiaNewsRoute
   AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
+  AuthenticatedModelsRoute: typeof AuthenticatedModelsRoute
   AuthenticatedNewsRoute: typeof AuthenticatedNewsRoute
   AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -358,6 +378,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalculatorsRoute: AuthenticatedCalculatorsRoute,
   AuthenticatedIndiaNewsRoute: AuthenticatedIndiaNewsRoute,
   AuthenticatedMarketRoute: AuthenticatedMarketRoute,
+  AuthenticatedModelsRoute: AuthenticatedModelsRoute,
   AuthenticatedNewsRoute: AuthenticatedNewsRoute,
   AuthenticatedPortfolioRoute: AuthenticatedPortfolioRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,

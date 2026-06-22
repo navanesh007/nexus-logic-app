@@ -1,8 +1,24 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Mail, Lock, User, AtSign, Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, KeyRound,
+  Mail, Lock, User, AtSign, Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, KeyRound, Info,
 } from "lucide-react";
+
+function OtpInfoBox() {
+  return (
+    <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-[12px] leading-relaxed text-amber-100">
+      <div className="flex items-start gap-2">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-300" />
+        <div>
+          <p className="font-semibold text-amber-200">Note</p>
+          <p className="mt-0.5 text-amber-100/90">
+            The verification email may arrive in your <strong>Inbox</strong>, <strong>Promotions</strong>, or <strong>Spam</strong> folder. Please check all folders before requesting a new code.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -455,6 +471,8 @@ function AuthPage() {
 
           {step === "otp" && (
             <form onSubmit={verifySignupOtp} className="space-y-4">
+              <OtpInfoBox />
+
               <Field icon={<ShieldCheck className="h-4 w-4" />}>
                 <input
                   type="text"
@@ -525,6 +543,8 @@ function AuthPage() {
 
           {step === "forgot-otp" && (
             <form onSubmit={verifyResetOtp} className="space-y-4">
+              <OtpInfoBox />
+
               <Field icon={<KeyRound className="h-4 w-4" />}>
                 <input
                   type="text"

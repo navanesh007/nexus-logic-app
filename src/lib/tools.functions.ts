@@ -2,6 +2,40 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const DAILY_IMAGE_LIMIT = 10;
+export const DAILY_EDIT_LIMIT = 10;
+
+export const getDailyUsage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = context.supabase;
+    const [g, e] = await Promise.all([
+      supabase.rpc("get_usage" as never, { _kind: "image_gen" } as never),
+      supabase.rpc("get_usage" as never, { _kind: "image_edit" } as never),
+    ]);
+    const used = (v: unknown) => (typeof v === "number" ? v : 0);
+    return {
+      image_gen: { used: used(g.data), limit: DAILY_IMAGE_LIMIT, remaining: Math.max(0, DAILY_IMAGE_LIMIT - used(g.data)) },
+      image_edit: { used: used(e.data), limit: DAILY_EDIT_LIMIT, remaining: Math.max(0, DAILY_EDIT_LIMIT - used(e.data)) },
+    };
+  });
+
+async function consumeImageCredit(
+  supabase: { rpc: (fn: never, args: never) => Promise<{ error: { message: string } | null }> },
+  kind: "image_gen" | "image_edit",
+  limit: number,
+) {
+  const { error } = await supabase.rpc("consume_usage" as never, { _kind: kind, _limit: limit } as never);
+  if (error) {
+    if ((error.message || "").includes("DAILY_LIMIT_REACHED")) {
+      throw new Error(
+        `Daily ${kind === "image_gen" ? "image generation" : "image editing"} limit reached (${limit}/day). Resets every 24 hours.`,
+      );
+    }
+    throw new Error(error.message || "Usage check failed");
+  }
+}
+
 async function callGateway(path: string, body: unknown) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
@@ -129,8 +163,10 @@ export const runTool = createServerFn({ method: "POST" })
         .optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as Parameters<typeof consumeImageCredit>[0];
     if (data.tool === "image_gen") {
+      await consumeImageCredit(supabase, "image_gen", DAILY_IMAGE_LIMIT);
       const hint = data.style ? STYLE_HINTS[data.style] ?? "" : "";
       const finalPrompt = hint ? `${data.prompt}. Style: ${hint}` : data.prompt;
       const url = await generateImageWithRetry(finalPrompt);
@@ -139,6 +175,7 @@ export const runTool = createServerFn({ method: "POST" })
 
     if (data.tool === "image_edit") {
       if (!data.imageDataUrl) throw new Error("Attach an image to edit.");
+      await consumeImageCredit(supabase, "image_edit", DAILY_EDIT_LIMIT);
       const result = await callGateway("chat/completions", {
         model: "google/gemini-2.5-flash-image",
         messages: [

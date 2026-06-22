@@ -145,6 +145,30 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_counters: {
+        Row: {
+          count: number
+          day: string
+          kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          day?: string
+          kind: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_memory: {
         Row: {
           memory: string
@@ -198,7 +222,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_usage: {
+        Args: { _kind: string; _limit: number }
+        Returns: {
+          daily_limit: number
+          remaining: number
+          used: number
+        }[]
+      }
+      get_usage: { Args: { _kind: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

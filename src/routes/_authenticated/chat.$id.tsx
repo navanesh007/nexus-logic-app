@@ -3,6 +3,9 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import rehypeHighlight from "rehype-highlight";
 import {
   ArrowLeft,
   Send,
@@ -83,7 +86,10 @@ const MarkdownMessage = memo(function MarkdownMessage({ content }: { content: st
       prose-strong:text-foreground
       prose-blockquote:border-l-2 prose-blockquote:border-white/20 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
       prose-table:text-xs prose-th:border prose-th:border-white/10 prose-th:px-2 prose-th:py-1 prose-td:border prose-td:border-white/10 prose-td:px-2 prose-td:py-1">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+      >{content}</ReactMarkdown>
     </div>
   );
 });

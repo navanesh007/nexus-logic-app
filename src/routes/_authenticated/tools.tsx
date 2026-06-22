@@ -1,13 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Mail, FileText, BriefcaseBusiness, ScrollText,
   Code2, BookOpen, Bug, ImagePlus, ImageIcon,
   Languages, AlignLeft, SpellCheck,
   Loader2, Sparkles, Paperclip, X, Copy, Check, History, Trash2, Download, RefreshCw,
 } from "lucide-react";
-import { runTool, type ToolIdT } from "@/lib/tools.functions";
+import { runTool, getDailyUsage, type ToolIdT } from "@/lib/tools.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/tools")({
@@ -89,6 +89,7 @@ const PROGRESS_STEPS = ["Composing prompt…", "Generating pixels…", "Polishin
 
 function ToolsPage() {
   const run = useServerFn(runTool);
+  const fetchUsage = useServerFn(getDailyUsage);
   const [active, setActive] = useState<ToolIdT | null>(null);
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -99,11 +100,18 @@ function ToolsPage() {
   const [style, setStyle] = useState<string>("none");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [usage, setUsage] = useState<{ image_gen: { used: number; limit: number; remaining: number }; image_edit: { used: number; limit: number; remaining: number } } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHistory(loadHistory());
   }, []);
+
+  const refreshUsage = useCallback(() => {
+    fetchUsage().then(setUsage).catch(() => {});
+  }, [fetchUsage]);
+
+  useEffect(() => { refreshUsage(); }, [refreshUsage]);
 
   useEffect(() => {
     if (!busy) { setProgress(0); return; }
@@ -157,6 +165,7 @@ function ToolsPage() {
       const next = [item, ...history].slice(0, HISTORY_MAX);
       setHistory(next);
       saveHistory(next);
+      if (active === "image_gen" || active === "image_edit") refreshUsage();
     } catch (err) {
       toast.error(friendlyErr((err as Error).message));
     } finally {
@@ -218,13 +227,21 @@ function ToolsPage() {
           </h1>
           <p className="text-[12px] text-muted-foreground">Writing, coding, and image studio — all in one place.</p>
         </div>
-        <button
-          onClick={() => setShowHistory((s) => !s)}
-          className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
-          aria-label="History"
-        >
-          <History className="h-3.5 w-3.5" /> {history.length}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Link
+            to="/models"
+            className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Models
+          </Link>
+          <button
+            onClick={() => setShowHistory((s) => !s)}
+            className="rounded-full glass px-3 py-1.5 text-[12px] inline-flex items-center gap-1.5 hover:text-foreground"
+            aria-label="History"
+          >
+            <History className="h-3.5 w-3.5" /> {history.length}
+          </button>
+        </div>
       </div>
 
       {showHistory && (
@@ -301,6 +318,19 @@ function ToolsPage() {
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {(active === "image_gen" || active === "image_edit") && usage && (
+            <div className="rounded-2xl glass-strong px-4 py-2.5 flex items-center justify-between text-[12px]">
+              <span className="text-muted-foreground">Daily credits</span>
+              <span className="font-semibold">
+                <span className={usage[active].remaining === 0 ? "text-red-400" : "text-green-accent"}>
+                  {usage[active].remaining}
+                </span>
+                <span className="text-muted-foreground"> / {usage[active].limit} left</span>
+              </span>
+            </div>
+          )}
+
 
           {activeTool.takesImage && (
             <div>
