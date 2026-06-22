@@ -527,6 +527,8 @@ function AuthPage() {
 
           {step === "forgot-otp" && (
             <form onSubmit={verifyResetOtp} className="space-y-4">
+              <OtpInfoBox />
+
               <Field icon={<KeyRound className="h-4 w-4" />}>
                 <input
                   type="text"
