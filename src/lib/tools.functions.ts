@@ -8,10 +8,10 @@ export const DAILY_EDIT_LIMIT = 10;
 export const getDailyUsage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = context as { supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> } };
+    const supabase = context.supabase;
     const [g, e] = await Promise.all([
-      supabase.rpc("get_usage", { _kind: "image_gen" }),
-      supabase.rpc("get_usage", { _kind: "image_edit" }),
+      supabase.rpc("get_usage" as never, { _kind: "image_gen" } as never),
+      supabase.rpc("get_usage" as never, { _kind: "image_edit" } as never),
     ]);
     const used = (v: unknown) => (typeof v === "number" ? v : 0);
     return {
@@ -21,11 +21,11 @@ export const getDailyUsage = createServerFn({ method: "GET" })
   });
 
 async function consumeImageCredit(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  supabase: { rpc: (fn: never, args: never) => Promise<{ error: { message: string } | null }> },
   kind: "image_gen" | "image_edit",
   limit: number,
 ) {
-  const { error } = await supabase.rpc("consume_usage", { _kind: kind, _limit: limit });
+  const { error } = await supabase.rpc("consume_usage" as never, { _kind: kind, _limit: limit } as never);
   if (error) {
     if ((error.message || "").includes("DAILY_LIMIT_REACHED")) {
       throw new Error(
