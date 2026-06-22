@@ -2,6 +2,40 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const DAILY_IMAGE_LIMIT = 10;
+export const DAILY_EDIT_LIMIT = 10;
+
+export const getDailyUsage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as { supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> } };
+    const [g, e] = await Promise.all([
+      supabase.rpc("get_usage", { _kind: "image_gen" }),
+      supabase.rpc("get_usage", { _kind: "image_edit" }),
+    ]);
+    const used = (v: unknown) => (typeof v === "number" ? v : 0);
+    return {
+      image_gen: { used: used(g.data), limit: DAILY_IMAGE_LIMIT, remaining: Math.max(0, DAILY_IMAGE_LIMIT - used(g.data)) },
+      image_edit: { used: used(e.data), limit: DAILY_EDIT_LIMIT, remaining: Math.max(0, DAILY_EDIT_LIMIT - used(e.data)) },
+    };
+  });
+
+async function consumeImageCredit(
+  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  kind: "image_gen" | "image_edit",
+  limit: number,
+) {
+  const { error } = await supabase.rpc("consume_usage", { _kind: kind, _limit: limit });
+  if (error) {
+    if ((error.message || "").includes("DAILY_LIMIT_REACHED")) {
+      throw new Error(
+        `Daily ${kind === "image_gen" ? "image generation" : "image editing"} limit reached (${limit}/day). Resets every 24 hours.`,
+      );
+    }
+    throw new Error(error.message || "Usage check failed");
+  }
+}
+
 async function callGateway(path: string, body: unknown) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
