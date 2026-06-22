@@ -455,6 +455,8 @@ function AuthPage() {
 
           {step === "otp" && (
             <form onSubmit={verifySignupOtp} className="space-y-4">
+              <OtpInfoBox />
+
               <Field icon={<ShieldCheck className="h-4 w-4" />}>
                 <input
                   type="text"
