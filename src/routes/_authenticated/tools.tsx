@@ -89,6 +89,7 @@ const PROGRESS_STEPS = ["Composing prompt…", "Generating pixels…", "Polishin
 
 function ToolsPage() {
   const run = useServerFn(runTool);
+  const fetchUsage = useServerFn(getDailyUsage);
   const [active, setActive] = useState<ToolIdT | null>(null);
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -99,11 +100,18 @@ function ToolsPage() {
   const [style, setStyle] = useState<string>("none");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [usage, setUsage] = useState<{ image_gen: { used: number; limit: number; remaining: number }; image_edit: { used: number; limit: number; remaining: number } } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHistory(loadHistory());
   }, []);
+
+  const refreshUsage = useCallback(() => {
+    fetchUsage().then(setUsage).catch(() => {});
+  }, [fetchUsage]);
+
+  useEffect(() => { refreshUsage(); }, [refreshUsage]);
 
   useEffect(() => {
     if (!busy) { setProgress(0); return; }
