@@ -86,7 +86,10 @@ const MarkdownMessage = memo(function MarkdownMessage({ content }: { content: st
       prose-strong:text-foreground
       prose-blockquote:border-l-2 prose-blockquote:border-white/20 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
       prose-table:text-xs prose-th:border prose-th:border-white/10 prose-th:px-2 prose-th:py-1 prose-td:border prose-td:border-white/10 prose-td:px-2 prose-td:py-1">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+      >{content}</ReactMarkdown>
     </div>
   );
 });
