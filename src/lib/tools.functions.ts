@@ -163,8 +163,10 @@ export const runTool = createServerFn({ method: "POST" })
         .optional(),
     }).parse,
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase as unknown as Parameters<typeof consumeImageCredit>[0];
     if (data.tool === "image_gen") {
+      await consumeImageCredit(supabase, "image_gen", DAILY_IMAGE_LIMIT);
       const hint = data.style ? STYLE_HINTS[data.style] ?? "" : "";
       const finalPrompt = hint ? `${data.prompt}. Style: ${hint}` : data.prompt;
       const url = await generateImageWithRetry(finalPrompt);
@@ -173,6 +175,7 @@ export const runTool = createServerFn({ method: "POST" })
 
     if (data.tool === "image_edit") {
       if (!data.imageDataUrl) throw new Error("Attach an image to edit.");
+      await consumeImageCredit(supabase, "image_edit", DAILY_EDIT_LIMIT);
       const result = await callGateway("chat/completions", {
         model: "google/gemini-2.5-flash-image",
         messages: [
