@@ -7,7 +7,7 @@ import {
   Languages, AlignLeft, SpellCheck,
   Loader2, Sparkles, Paperclip, X, Copy, Check, History, Trash2, Download, RefreshCw,
 } from "lucide-react";
-import { runTool, type ToolIdT } from "@/lib/tools.functions";
+import { runTool, getDailyUsage, type ToolIdT } from "@/lib/tools.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/tools")({
