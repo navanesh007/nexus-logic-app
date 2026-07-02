@@ -66,7 +66,7 @@ export const listUsers = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const { data: rows, error } = await context.supabase.rpc("admin_list_users", {
-      _search: data.search,
+      _search: data.search as unknown as string,
       _limit: 200,
     });
     if (error) throw new Error(error.message);
