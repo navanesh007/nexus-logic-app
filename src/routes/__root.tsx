@@ -118,8 +118,24 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        void supabase
+          .from("login_events")
+          .insert({
+            user_id: session.user.id,
+            event: "login",
+            user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+          });
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
+      <GoogleAnalytics />
       <div className="sticky top-0 z-50 w-full bg-gradient-to-r from-violet-600/90 to-indigo-600/90 px-4 py-2 text-center text-xs font-medium text-white backdrop-blur">
         Development Mode — Temporary Authentication Enabled
       </div>
@@ -129,3 +145,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
