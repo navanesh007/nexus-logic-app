@@ -25,6 +25,7 @@ import { Route as AuthenticatedModelsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
 import { Route as AuthenticatedIndiaNewsRouteImport } from './routes/_authenticated/india-news'
 import { Route as AuthenticatedCalculatorsRouteImport } from './routes/_authenticated/calculators'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedChatIdRouteImport } from './routes/_authenticated/chat.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -107,6 +108,11 @@ const AuthenticatedCalculatorsRoute =
     path: '/calculators',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedChatIdRoute = AuthenticatedChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/calculators': typeof AuthenticatedCalculatorsRoute
   '/india-news': typeof AuthenticatedIndiaNewsRoute
   '/market': typeof AuthenticatedMarketRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/calculators': typeof AuthenticatedCalculatorsRoute
   '/india-news': typeof AuthenticatedIndiaNewsRoute
   '/market': typeof AuthenticatedMarketRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/calculators': typeof AuthenticatedCalculatorsRoute
   '/_authenticated/india-news': typeof AuthenticatedIndiaNewsRoute
   '/_authenticated/market': typeof AuthenticatedMarketRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/admin'
     | '/calculators'
     | '/india-news'
     | '/market'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/reset-password'
+    | '/admin'
     | '/calculators'
     | '/india-news'
     | '/market'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/admin'
     | '/_authenticated/calculators'
     | '/_authenticated/india-news'
     | '/_authenticated/market'
@@ -350,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalculatorsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/chat/$id': {
       id: '/_authenticated/chat/$id'
       path: '/chat/$id'
@@ -361,6 +380,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedCalculatorsRoute: typeof AuthenticatedCalculatorsRoute
   AuthenticatedIndiaNewsRoute: typeof AuthenticatedIndiaNewsRoute
   AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
@@ -375,6 +395,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedCalculatorsRoute: AuthenticatedCalculatorsRoute,
   AuthenticatedIndiaNewsRoute: AuthenticatedIndiaNewsRoute,
   AuthenticatedMarketRoute: AuthenticatedMarketRoute,
