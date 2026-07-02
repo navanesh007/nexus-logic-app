@@ -62,7 +62,7 @@ export const getModelUsage = createServerFn({ method: "GET" })
 
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { search?: string }) => ({ search: (d?.search ?? null) as string | null }))
+  .inputValidator((d: { search?: string | null }) => ({ search: d?.search ?? null }))
   .handler(async ({ context, data }) => {
     await assertAdmin(context);
     const { data: rows, error } = await context.supabase.rpc("admin_list_users", {
