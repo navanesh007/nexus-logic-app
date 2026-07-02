@@ -5,6 +5,7 @@ import { useState } from "react";
 import { RefreshCw, AlertCircle, Clock } from "lucide-react";
 import { getNews } from "@/lib/insights.functions";
 import { NewsThumb } from "@/components/NewsThumb";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 
 
@@ -83,6 +84,9 @@ function NewsPage() {
           ))}
         </div>
       </div>
+
+      <div className="px-5 mb-4"><AdSlot slot="news-top" label="Sponsored" /></div>
+
 
       {isLoading && (
         <div className="px-5 space-y-3">

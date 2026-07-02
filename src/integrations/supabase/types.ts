@@ -41,6 +41,60 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          source: string
+          stack: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          source?: string
+          stack?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          source?: string
+          stack?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      login_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event?: string
+          id?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           chat_id: string
@@ -127,6 +181,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          suspended: boolean
           updated_at: string
         }
         Insert: {
@@ -134,6 +189,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          suspended?: boolean
           updated_at?: string
         }
         Update: {
@@ -141,6 +197,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          suspended?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -190,6 +247,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       watchlist: {
         Row: {
           created_at: string
@@ -222,6 +300,62 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_daily_series: {
+        Args: { _days?: number }
+        Returns: {
+          chats: number
+          day: string
+          image_edit: number
+          image_gen: number
+          logins: number
+          users: number
+        }[]
+      }
+      admin_list_users: {
+        Args: { _limit?: number; _search?: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          is_admin: boolean
+          last_sign_in_at: string
+          suspended: boolean
+        }[]
+      }
+      admin_model_usage: {
+        Args: { _days?: number }
+        Returns: {
+          kind: string
+          total: number
+        }[]
+      }
+      admin_overview: { Args: never; Returns: Json }
+      admin_recent_errors: {
+        Args: { _limit?: number }
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          source: string
+          user_id: string
+        }[]
+      }
+      admin_recent_logins: {
+        Args: { _limit?: number }
+        Returns: {
+          created_at: string
+          email: string
+          event: string
+          id: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
+      admin_set_suspended: {
+        Args: { _suspended: boolean; _user_id: string }
+        Returns: undefined
+      }
       consume_usage: {
         Args: { _kind: string; _limit: number }
         Returns: {
@@ -231,9 +365,16 @@ export type Database = {
         }[]
       }
       get_usage: { Args: { _kind: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -360,6 +501,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
