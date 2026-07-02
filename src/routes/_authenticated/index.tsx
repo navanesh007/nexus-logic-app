@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Search, Plus, MessageSquare, Loader2, Sparkles, Briefcase, Calculator, Cloud } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
+import { AdSlot } from "@/components/ads/AdSlot";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -102,6 +103,8 @@ function HomePage() {
         ))}
       </div>
 
+      <AdSlot slot="home-top" className="mb-4" label="Sponsored" />
+
       <div className="space-y-2">
         <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Recent
@@ -129,6 +132,8 @@ function HomePage() {
           </button>
         ))}
       </div>
+
+      <AdSlot slot="home-footer" className="mt-6" label="Sponsored" />
     </main>
   );
 }
